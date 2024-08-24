@@ -2,29 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['empower-goal-tracker.vercel.app'],  // Replace with your actual domain
+    domains: ['empower-goal-tracker.vercel.app'],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: '/api/:path*',
-      },
-    ];
+  webpack: (config) => {
+    config.experiments = {
+      ...config.experiments,
+      topLevelAwait: true,
+    }
+    return config
   },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline';",
-          },
-        ],
-      },
-    ];
-  },
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig
