@@ -1,7 +1,12 @@
 export default function handler(req, res) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   const { inputText: startDate, state } = req.body;
-  const { goal } = JSON.parse(state || '{}');
+  const { goal, currentDate } = JSON.parse(state || '{}');
+
+  // Validate start date
+  if (!isValidDate(startDate) || !isDateOnOrAfter(startDate, currentDate)) {
+    return res.redirect(`${basePath}/api/error?message=Invalid start date. Please enter a date from today onwards.`);
+  }
 
   res.setHeader('Content-Type', 'text/html');
   res.status(200).send(`
@@ -15,11 +20,29 @@ export default function handler(req, res) {
       <meta property="fc:frame:post_url:1" content="${basePath}/api/step2" />
       <meta property="fc:frame:button:2" content="Next" />
       <meta property="fc:frame:post_url:2" content="${basePath}/api/review" />
-      <meta property="fc:frame:state" content="${JSON.stringify({ goal, startDate })}" />
+      <meta property="fc:frame:state" content="${JSON.stringify({ goal, startDate, currentDate })}" />
     </head>
     <body>
       <h1>Enter End Date for: ${goal}</h1>
+      <p>Start date: ${startDate}</p>
+      <p>Please enter a date after the start date.</p>
     </body>
     </html>
   `);
+}
+
+function isValidDate(dateString) {
+  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+  if (!regex.test(dateString)) return false;
+  const [day, month, year] = dateString.split('/');
+  const date = new Date(year, month - 1, day);
+  return date && date.getMonth() + 1 == month && date.getDate() == day;
+}
+
+function isDateOnOrAfter(dateA, dateB) {
+  const [dayA, monthA, yearA] = dateA.split('/');
+  const [dayB, monthB, yearB] = dateB.split('/');
+  const a = new Date(yearA, monthA - 1, dayA);
+  const b = new Date(yearB, monthB - 1, dayB);
+  return a >= b;
 }
