@@ -2,11 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['https://empower-goal-tracker.vercel.app'],  // Replace with your actual domain if needed
+    domains: ['empower-goal-tracker.vercel.app'],  // Replace with your actual domain
   },
-  webpack: (config) => {
-    config.externals = [...config.externals, 'sharp'];
-    return config;
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
   },
   async headers() {
     return [
@@ -21,6 +25,6 @@ const nextConfig = {
       },
     ];
   },
-}
+};
 
 module.exports = nextConfig;

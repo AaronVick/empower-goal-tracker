@@ -1,5 +1,6 @@
-import { db } from '../../firebase';
+import { db } from '../../lib/firebase';
 import { Message } from '@farcaster/core';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
@@ -17,7 +18,7 @@ export default async function handler(req, res) {
         goal,
         startDate: startTimestamp,
         endDate: endTimestamp,
-        createdAt: admin.firestore.Timestamp.now(),
+        createdAt: Timestamp.now(),
       });
 
       res.status(200).json({ message: 'Goal set successfully' });
@@ -35,13 +36,13 @@ function convertToTimestamp(dateString, isStart) {
   const date = new Date(`${year}-${month}-${day}`);
 
   if (date.toDateString() === new Date().toDateString()) {
-    return admin.firestore.Timestamp.fromDate(new Date());
+    return Timestamp.fromDate(new Date());
   } else {
     if (isStart) {
       date.setHours(0, 0, 0, 0);
     } else {
       date.setHours(23, 59, 59, 999);
     }
-    return admin.firestore.Timestamp.fromDate(date);
+    return Timestamp.fromDate(date);
   }
 }
