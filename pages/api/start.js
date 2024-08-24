@@ -8,7 +8,7 @@ export default function handler(req, res) {
     <html>
     <head>
       <meta property="fc:frame" content="vNext" />
-      <meta property="fc:frame:image" content="${fullBasePath}/addGoal.png" />
+      <meta property="fc:frame:image" content="https://empower-goal-tracker.vercel.app/addGoal.png"/>
       <meta property="fc:frame:input:text" content="Enter your goal" />
       <meta property="fc:frame:button:1" content="Next" />
       <meta property="fc:frame:post_url" content="${fullBasePath}/api/step2" />
