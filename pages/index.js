@@ -5,9 +5,9 @@ const app = express();
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/';
 
 // Serve static files from the public folder
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(`${basePath}/`, express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req, res) => {
+app.get(`${basePath}/`, (req, res) => {
     console.log("Serving the home frame with meta tags");
 
     res.setHeader('Content-Type', 'text/html');
