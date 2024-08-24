@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 
+//fucntion home
 export default function Home() {
   const router = useRouter();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
