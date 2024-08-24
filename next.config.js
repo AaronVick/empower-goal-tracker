@@ -4,12 +4,17 @@ const nextConfig = {
   images: {
     domains: ['empower-goal-tracker.vercel.app'],
   },
-  webpack: (config) => {
-    config.experiments = {
-      ...config.experiments,
-      topLevelAwait: true,
-    }
-    return config
+  async rewrites() {
+    return [
+      {
+        source: '/start',
+        destination: '/api/start',
+      },
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
   },
 }
 
