@@ -35,6 +35,7 @@ app.use(`${basePath}/`, express.static(path.join(__dirname, 'public')));
 
 // Opening Screen
 app.get(`${basePath}/`, (req, res) => {
+    console.log("Rendering Opening Screen");
     res.send(`
         <html>
         <head>
@@ -61,14 +62,18 @@ app.get(`${basePath}/`, (req, res) => {
 // Step 1: Enter Goal
 app.post(`${basePath}/start`, async (req, res) => {
     try {
+        console.log("Starting Goal Entry Process");
         const { trustedData } = req.body;
 
         if (!trustedData?.messageBytes) {
+            console.error("Missing trusted data");
             return res.status(400).json({ error: 'Invalid request: missing trusted data' });
         }
 
         const frameMessage = Message.decode(Buffer.from(trustedData.messageBytes, 'hex'));
         userFID = frameMessage.data.fid;
+
+        console.log(`Extracted userFID: ${userFID}`);
 
         res.send(`
             <html>
@@ -88,6 +93,7 @@ app.post(`${basePath}/start`, async (req, res) => {
             </html>
         `);
     } catch (error) {
+        console.error("Error in Step 1:", error);
         res.status(500).send('Error processing request');
     }
 });
@@ -95,6 +101,7 @@ app.post(`${basePath}/start`, async (req, res) => {
 // Step 2: Enter Start Date
 app.post(`${basePath}/step2`, (req, res) => {
     globalGoal = req.body.goal;
+    console.log(`Goal received: ${globalGoal}`);
     res.send(`
         <html>
         <head>
@@ -119,6 +126,7 @@ app.post(`${basePath}/step2`, (req, res) => {
 // Step 3: Enter End Date
 app.post(`${basePath}/step3`, (req, res) => {
     globalStartDate = req.body.startDate;
+    console.log(`Start Date received: ${globalStartDate}`);
     res.send(`
         <html>
         <head>
@@ -143,9 +151,11 @@ app.post(`${basePath}/step3`, (req, res) => {
 // Step 4: Review and Submit
 app.post(`${basePath}/review`, (req, res) => {
     globalEndDate = req.body.endDate;
+    console.log(`End Date received: ${globalEndDate}`);
 
     // Validate the dates
     if (!validateDate(globalStartDate) || !validateDate(globalEndDate)) {
+        console.error("Invalid date format");
         return res.redirect(`${basePath}/error`);
     }
 
@@ -176,16 +186,19 @@ app.post(`${basePath}/review`, (req, res) => {
 // Step 5: Success Message with Share and Home Options
 app.post(`${basePath}/setGoal`, async (req, res) => {
     try {
+        console.log("Setting Goal in Firebase");
         const startTimestamp = convertToTimestamp(globalStartDate, true);
         const endTimestamp = convertToTimestamp(globalEndDate, false);
 
-        await db.collection('goals').add({
+        await admin.firestore().collection('goals').add({
             user_id: userFID,
             goal: globalGoal,
             startDate: startTimestamp,
             endDate: endTimestamp,
             createdAt: admin.firestore.Timestamp.now(),
         });
+
+        console.log("Goal set successfully in Firebase");
 
         const ogImage = createSuccessOGImage();
         const shareText = encodeURIComponent(`I just set a new goal: "${globalGoal}"! Join me on Empower Goal Tracker.\n\nStart Date: ${globalStartDate}\nEnd Date: ${globalEndDate}`);
@@ -215,12 +228,14 @@ app.post(`${basePath}/setGoal`, async (req, res) => {
         </html>
         `);
     } catch (error) {
+        console.error("Error setting goal in Firebase:", error);
         res.redirect(`${basePath}/error`);
     }
 });
 
 // Error route
 app.get(`${basePath}/error`, (req, res) => {
+    console.error("Error page triggered");
     const ogImage = createErrorOGImage('Invalid date format: Please use dd/mm/yyyy');
     res.setHeader('Content-Type', 'text/html');
     return res.status(200).send(`
@@ -236,16 +251,20 @@ app.get(`${basePath}/error`, (req, res) => {
     `);
 });
 
+// Utility functions
 function validateDate(dateString) {
+    console.log(`Validating date: ${dateString}`);
     const regex = /^\d{2}\/\d{2}\/\d{4}$/;
     return regex.test(dateString);
 }
 
 function convertToTimestamp(dateString, isStart) {
+    console.log(`Converting date: ${dateString}, isStart: ${isStart}`);
     const [day, month, year] = dateString.split('/');
     const date = new Date(`${year}-${month}-${day}`);
 
     if (date.toDateString() === new Date().toDateString()) {
+        console.log("Date is today, using current timestamp");
         return admin.firestore.Timestamp.fromDate(new Date());
     } else {
         if (isStart) {
@@ -253,13 +272,15 @@ function convertToTimestamp(dateString, isStart) {
         } else {
             date.setHours(23, 59, 59, 999);
         }
+        console.log(`Converted date to timestamp: ${date}`);
         return admin.firestore.Timestamp.fromDate(date);
     }
 }
 
 function createReviewOGImage(goal, startDate, endDate) {
+    console.log("Creating review OG image");
     const svgContent = `
-        <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <svg width="1200" height="675" xmlns="http://www.w3.org/2000/svg">
             <rect width="100%" height="100%" fill="#f0f8ea"/>
             <foreignObject x="50" y="50" width="1200" height="675">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
@@ -274,8 +295,9 @@ function createReviewOGImage(goal, startDate, endDate) {
 }
 
 function createSuccessOGImage() {
+    console.log("Creating success OG image");
     const svgContent = `
-        <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <svg width="1200" height="675" xmlns="http://www.w3.org/2000/svg">
             <rect width="100%" height="100%" fill="#f0f8ea"/>
             <foreignObject x="50" y="50" width="1200" height="675">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
@@ -288,8 +310,9 @@ function createSuccessOGImage() {
 }
 
 function createErrorOGImage(message) {
+    console.log("Creating error OG image");
     const svgContent = `
-        <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <svg width="1200" height="675" xmlns="http://www.w3.org/2000/svg">
             <rect width="100%" height="100%" fill="#f0f8ea"/>
             <foreignObject x="50" y="50" width="1200" height="675">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
@@ -301,6 +324,7 @@ function createErrorOGImage(message) {
     return `data:image/svg+xml;base64,${Buffer.from(svgContent).toString('base64')}`;
 }
 
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
