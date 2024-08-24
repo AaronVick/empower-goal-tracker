@@ -1,10 +1,13 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 
-//fucntion home
+// Function home
 export default function Home() {
   const router = useRouter();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
+  console.log("Base Path:", basePath);
+  console.log("Serving home with image path:", `${basePath}/empower.png`);
 
   return (
     <div>
