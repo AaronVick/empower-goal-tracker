@@ -2,6 +2,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 
 export default function handler(req, res) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  const fullBasePath = `https://empower-goal-tracker.vercel.app${basePath}`;
   let startDate, goal, currentDate;
 
   if (req.method === 'POST') {
@@ -17,7 +18,7 @@ export default function handler(req, res) {
 
   // Validate start date
   if (!isValidDate(startDate) || !isDateOnOrAfter(startDate, currentDate)) {
-    return res.redirect(`${basePath}/api/error?message=Invalid start date. Please enter a date from today onwards.`);
+    return res.redirect(`${fullBasePath}/api/error?message=Invalid start date. Please enter a date from today onwards.`);
   }
 
   res.setHeader('Content-Type', 'text/html');
@@ -26,12 +27,12 @@ export default function handler(req, res) {
     <html>
     <head>
       <meta property="fc:frame" content="vNext" />
-      <meta property="fc:frame:image" content="${basePath}/addGoal.png" />
+      <meta property="fc:frame:image" content="${fullBasePath}/addGoal.png" />
       <meta property="fc:frame:input:text" content="Enter end date (dd/mm/yyyy)" />
       <meta property="fc:frame:button:1" content="Previous" />
-      <meta property="fc:frame:post_url:1" content="${basePath}/api/step2" />
+      <meta property="fc:frame:post_url:1" content="${fullBasePath}/api/step2" />
       <meta property="fc:frame:button:2" content="Next" />
-      <meta property="fc:frame:post_url:2" content="${basePath}/api/review" />
+      <meta property="fc:frame:post_url:2" content="${fullBasePath}/api/review" />
       <meta property="fc:frame:state" content="${JSON.stringify({ goal, startDate, currentDate: currentDate.toISOString() })}" />
     </head>
     <body>
