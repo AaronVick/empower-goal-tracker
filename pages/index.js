@@ -10,6 +10,18 @@ app.use(`${basePath}/`, express.static(path.join(__dirname, 'public')));
 app.get(`${basePath}/`, (req, res) => {
     console.log("Serving the home frame with meta tags");
 
+    // Check if the image exists
+    const imagePath = path.join(__dirname, 'public', 'empower.png');
+    if (path.existsSync(imagePath)) {
+        console.log("Image found at:", imagePath);
+    } else {
+        console.error("Image not found at:", imagePath);
+    }
+
+    // Log the base path and request URL
+    console.log("Base Path:", basePath);
+    console.log("Request URL:", req.url);
+
     res.setHeader('Content-Type', 'text/html');
     res.send(`
         <!DOCTYPE html>
@@ -37,8 +49,6 @@ app.get(`${basePath}/`, (req, res) => {
         </html>
     `);
 });
-
-// Other routes...
 
 // Start the server
 const PORT = process.env.PORT || 3000;
