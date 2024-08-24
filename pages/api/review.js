@@ -2,7 +2,7 @@ import { createReviewOGImage } from '../../lib/utils';
 
 export default function handler(req, res) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-  const { goal, startDate, endDate } = req.body;
+  const { goal, startDate, endDate, trustedData } = req.body;
 
   if (!validateDate(startDate) || !validateDate(endDate)) {
     return res.redirect(`${basePath}/api/error`);
@@ -31,6 +31,7 @@ export default function handler(req, res) {
         <input type="hidden" name="goal" value="${goal}" />
         <input type="hidden" name="startDate" value="${startDate}" />
         <input type="hidden" name="endDate" value="${endDate}" />
+        <input type="hidden" name="trustedData" value='${trustedData}' />
         <button type="submit">Set Goal</button>
       </form>
     </body>

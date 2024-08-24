@@ -22,6 +22,7 @@ export default function handler(req, res) {
         <h1>Enter Your Goal</h1>
         <form action="${basePath}/api/step2" method="post">
           <input type="text" name="goal" placeholder="Enter your goal" required /><br>
+          <input type="hidden" name="trustedData" value="${JSON.stringify(trustedData)}" />
           <button type="submit">Next</button>
         </form>
       </body>
