@@ -1,28 +1,7 @@
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
-const admin = require('firebase-admin');
-const { Message } = require('@farcaster/core');
 const app = express();
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
-// Initialize Firebase Admin with environment variables from Vercel
-admin.initializeApp({
-  credential: admin.credential.cert({
-    type: process.env.FIREBASE_TYPE,
-    project_id: process.env.FIREBASE_PROJECT_ID,
-    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    client_email: process.env.FIREBASE_CLIENT_EMAIL,
-    client_id: process.env.FIREBASE_CLIENT_ID,
-    auth_uri: process.env.FIREBASE_AUTH_URI,
-    token_uri: process.env.FIREBASE_TOKEN_URI,
-    auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL,
-    client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
-  }),
-});
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 let globalGoal = '';
@@ -32,6 +11,10 @@ let userFID = '';
 
 // Serve static files from the public folder
 app.use(`${basePath}/`, express.static(path.join(__dirname, 'public')));
+
+// Middleware to parse incoming requests
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 // Opening Screen
 app.get(`${basePath}/`, (req, res) => {
@@ -70,8 +53,8 @@ app.post(`${basePath}/start`, async (req, res) => {
             return res.status(400).json({ error: 'Invalid request: missing trusted data' });
         }
 
-        const frameMessage = Message.decode(Buffer.from(trustedData.messageBytes, 'hex'));
-        userFID = frameMessage.data.fid;
+        // In a real setup, you would send this trustedData to your API route to handle it.
+        userFID = 'dummy-fid'; // This should be handled server-side in a real API route.
 
         console.log(`Extracted userFID: ${userFID}`);
 
@@ -187,16 +170,24 @@ app.post(`${basePath}/review`, (req, res) => {
 app.post(`${basePath}/setGoal`, async (req, res) => {
     try {
         console.log("Setting Goal in Firebase");
-        const startTimestamp = convertToTimestamp(globalStartDate, true);
-        const endTimestamp = convertToTimestamp(globalEndDate, false);
 
-        await admin.firestore().collection('goals').add({
-            user_id: userFID,
-            goal: globalGoal,
-            startDate: startTimestamp,
-            endDate: endTimestamp,
-            createdAt: admin.firestore.Timestamp.now(),
+        // Normally, you'd POST to the API route here
+        const response = await fetch(`${basePath}/api/goal`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                trustedData: { messageBytes: 'dummy-bytes' }, // Replace with real data
+                goal: globalGoal,
+                startDate: globalStartDate,
+                endDate: globalEndDate,
+            }),
         });
+
+        if (!response.ok) {
+            throw new Error("Failed to set goal via API");
+        }
 
         console.log("Goal set successfully in Firebase");
 
@@ -256,25 +247,6 @@ function validateDate(dateString) {
     console.log(`Validating date: ${dateString}`);
     const regex = /^\d{2}\/\d{2}\/\d{4}$/;
     return regex.test(dateString);
-}
-
-function convertToTimestamp(dateString, isStart) {
-    console.log(`Converting date: ${dateString}, isStart: ${isStart}`);
-    const [day, month, year] = dateString.split('/');
-    const date = new Date(`${year}-${month}-${day}`);
-
-    if (date.toDateString() === new Date().toDateString()) {
-        console.log("Date is today, using current timestamp");
-        return admin.firestore.Timestamp.fromDate(new Date());
-    } else {
-        if (isStart) {
-            date.setHours(0, 0, 0, 0);
-        } else {
-            date.setHours(23, 59, 59, 999);
-        }
-        console.log(`Converted date to timestamp: ${date}`);
-        return admin.firestore.Timestamp.fromDate(date);
-    }
 }
 
 function createReviewOGImage(goal, startDate, endDate) {
