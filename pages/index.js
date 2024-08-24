@@ -9,7 +9,7 @@ export default function Home() {
     <div>
       <Head>
         <meta property="fc:frame" content="vNext" />
-        <meta property="fc:frame:image" content="${basePath}/empower.png" />
+        <meta property="fc:frame:image" content="https://empower-goal-tracker.vercel.app/empower.png" />
         <meta property="fc:frame:button:1" content="Start a Goal" />
         <meta property="fc:frame:post_url" content={`https://empower-goal-tracker.vercel.app${basePath}/api/start`} />
         <meta property="fc:frame:button:2" content="Review Goals" />
