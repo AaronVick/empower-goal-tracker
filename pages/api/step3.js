@@ -1,7 +1,19 @@
+import { Timestamp } from 'firebase-admin/firestore';
+
 export default function handler(req, res) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-  const { inputText: startDate, state } = req.body;
-  const { goal, currentDate } = JSON.parse(state || '{}');
+  let startDate, goal, currentDate;
+
+  if (req.method === 'POST') {
+    startDate = req.body.inputText || '';
+    const state = JSON.parse(req.body.state || '{}');
+    goal = state.goal || '';
+    currentDate = state.currentDate ? new Date(state.currentDate) : new Date();
+  } else if (req.method === 'GET') {
+    startDate = req.query.startDate || '';
+    goal = req.query.goal || '';
+    currentDate = new Date();
+  }
 
   // Validate start date
   if (!isValidDate(startDate) || !isDateOnOrAfter(startDate, currentDate)) {
@@ -20,7 +32,7 @@ export default function handler(req, res) {
       <meta property="fc:frame:post_url:1" content="${basePath}/api/step2" />
       <meta property="fc:frame:button:2" content="Next" />
       <meta property="fc:frame:post_url:2" content="${basePath}/api/review" />
-      <meta property="fc:frame:state" content="${JSON.stringify({ goal, startDate, currentDate })}" />
+      <meta property="fc:frame:state" content="${JSON.stringify({ goal, startDate, currentDate: currentDate.toISOString() })}" />
     </head>
     <body>
       <h1>Enter End Date for: ${goal}</h1>

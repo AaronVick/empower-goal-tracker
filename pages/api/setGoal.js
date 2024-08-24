@@ -6,18 +6,11 @@ import { createSuccessOGImage } from '../../lib/utils';
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-    const { trustedData, goal, startDate, endDate } = req.body;
+    const { trustedData, state } = req.body;
+    const { goal, startDate, endDate } = JSON.parse(state || '{}');
 
     try {
-      let parsedTrustedData;
-      try {
-        parsedTrustedData = JSON.parse(trustedData);
-      } catch (error) {
-        console.error("Error parsing trustedData:", error);
-        parsedTrustedData = trustedData; // Use as-is if it's not JSON
-      }
-
-      const frameMessage = Message.decode(Buffer.from(parsedTrustedData.messageBytes, 'hex'));
+      const frameMessage = Message.decode(Buffer.from(trustedData.messageBytes, 'hex'));
       const userFID = frameMessage.data.fid;
 
       const startTimestamp = convertToTimestamp(startDate, true);
@@ -43,7 +36,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${ogImage}" />
           <meta property="fc:frame:button:1" content="Home" />
-          <meta property="fc:frame:post_url" content="${basePath}/" />
+          <meta property="fc:frame:post_url:1" content="${basePath}/" />
           <meta property="fc:frame:button:2" content="Share" />
           <meta property="fc:frame:button:2:action" content="link" />
           <meta property="fc:frame:button:2:target" content="${shareLink}" />
@@ -51,12 +44,6 @@ export default async function handler(req, res) {
         <body>
           <h1>Goal Set Successfully!</h1>
           <p>Your goal has been saved.</p>
-          <form action="${basePath}/" method="get">
-            <button type="submit">Home</button>
-          </form>
-          <a href="${shareLink}">
-            <button>Share</button>
-          </a>
         </body>
         </html>
       `);
