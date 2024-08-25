@@ -11,6 +11,17 @@ export default function handler(req, res) {
 
     const baseUrl = 'https://empower-goal-tracker.vercel.app';
 
+    // Check which button was clicked and direct accordingly
+    let postUrl;
+    if (buttonIndex === 1) {
+      postUrl = `${baseUrl}/api/start?goal=${encodeURIComponent(goal)}`;
+    } else if (buttonIndex === 2) {
+      postUrl = `${baseUrl}/api/step3?goal=${encodeURIComponent(goal)}`;
+    } else {
+      // Handle unexpected cases
+      postUrl = `${baseUrl}/api/error?message=Unexpected button index: ${buttonIndex}`;
+    }
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -21,7 +32,7 @@ export default function handler(req, res) {
           <meta property="fc:frame:button:1" content="Previous" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start?goal=${encodeURIComponent(goal)}" />
           <meta property="fc:frame:button:2" content="Next" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/step3" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/step3?goal=${encodeURIComponent(goal)}" />
         </head>
         <body>
           <h1>Enter Start Date for: ${goal}</h1>
