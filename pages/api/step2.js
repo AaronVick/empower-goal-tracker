@@ -1,25 +1,23 @@
 export default function handler(req, res) {
-  const baseUrl = 'https://empower-goal-tracker.vercel.app';
-  const goal = req.body.inputText || 'No goal specified';
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta property="fc:frame" content="vNext" />
-        <meta property="fc:frame:image" content="${baseUrl}/api/image?step=step2" />
-        <meta property="fc:frame:input:text" content="Enter start date (dd/mm/yyyy)" />
-        <meta property="fc:frame:button:1" content="Previous" />
-        <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
-        <meta property="fc:frame:button:2" content="Next" />
-        <meta property="fc:frame:post_url:2" content="${baseUrl}/api/step3" />
-      </head>
-      <body>
-        <h1>Enter Start Date for: ${goal}</h1>
-      </body>
-    </html>
-  `;
+  console.log('Step 2 API accessed');  // Logging to confirm access to Step 2
+  
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  const fullBaseUrl = `https://empower-goal-tracker.vercel.app${baseUrl}`;
 
   res.setHeader('Content-Type', 'text/html');
-  res.status(200).send(html);
+  res.status(200).send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta property="fc:frame" content="vNext" />
+      <meta property="fc:frame:image" content="https://empower-goal-tracker.vercel.app/addGoal.png"/>
+      <meta property="fc:frame:input:text" content="Enter your goal end date (dd/mm/yyyy)" />
+      <meta property="fc:frame:button:1" content="Next" />
+      <meta property="fc:frame:post_url:2" content="${fullBaseUrl}/api/step3" />
+    </head>
+    <body>
+      <h1>Enter Your Goal End Date</h1>
+    </body>
+    </html>
+  `);
 }
