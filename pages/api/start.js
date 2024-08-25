@@ -1,4 +1,6 @@
 export default function handler(req, res) {
+  console.log('API /api/start accessed');  // Logging added here
+  
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   const fullBasePath = `https://empower-goal-tracker.vercel.app${basePath}`;
 
