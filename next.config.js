@@ -9,6 +9,8 @@ const nextConfig = {
     config.externals = [...config.externals, 'sharp'];
     return config;
   },
+  // Add this to ensure all routes are treated as dynamic
+  trailingSlash: true,
 };
 
 module.exports = nextConfig;
