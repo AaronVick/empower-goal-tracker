@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 export default function handler(req, res) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   const fullBasePath = `https://empower-goal-tracker.vercel.app${basePath}`;
@@ -7,12 +10,17 @@ export default function handler(req, res) {
     goal = req.body.inputText || '';
   }
 
+  // Read and encode the image
+  const imagePath = path.join(process.cwd(), 'public', 'addGoal.png');
+  const imageBuffer = fs.readFileSync(imagePath);
+  const base64Image = imageBuffer.toString('base64');
+
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta property="fc:frame" content="vNext" />
-      <meta property="fc:frame:image" content="${fullBasePath}/addGoal.png" />
+      <meta property="fc:frame:image" content="data:image/png;base64,${base64Image}" />
       <meta property="fc:frame:input:text" content="Enter start date (dd/mm/yyyy)" />
       <meta property="fc:frame:button:1" content="Previous" />
       <meta property="fc:frame:post_url:1" content="${fullBasePath}/api/start" />
