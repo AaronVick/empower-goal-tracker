@@ -2,18 +2,16 @@ export default function handler(req, res) {
   console.log('Step 2 API accessed');
   console.log('Full request body:', JSON.stringify(req.body, null, 2));
 
-  // Access both trusted and untrusted data
   const trustedData = req.body.trustedData || {};
   const untrustedData = req.body.untrustedData || {};
 
   console.log('Trusted Data:', JSON.stringify(trustedData, null, 2));
   console.log('Untrusted Data:', JSON.stringify(untrustedData, null, 2));
 
-  // Try to get button index from both trusted and untrusted data
   const buttonIndex = trustedData.buttonIndex || untrustedData.buttonIndex;
   const inputText = untrustedData.inputText || '';
 
-  console.log('Button Index:', buttonIndex);
+  console.log('Received Button Index:', buttonIndex);
   console.log('Input Text:', inputText);
 
   // Get goal from state or query parameter
@@ -28,24 +26,24 @@ export default function handler(req, res) {
   let imageUrl = `${baseUrl}/api/image?step=step2`;
   let inputTextContent = 'Enter start date (dd/mm/yyyy)';
 
-  if (buttonIndex === 1) {
-    console.log('Previous button detected');
+  // Determine action based on input rather than buttonIndex
+  if (inputText.toLowerCase() === 'prev') {
+    console.log('Previous action detected via input');
     nextUrl = `${baseUrl}/api/start`;
     imageUrl = `${baseUrl}/api/image?step=start`;
-  } else if (buttonIndex === 2) {
-    console.log('Next button detected');
-    if (inputText) {
-      console.log('Input provided, moving to step 3');
-      nextUrl = `${baseUrl}/api/step3`;
-      imageUrl = `${baseUrl}/api/image?step=step3`;
-      state.startDate = inputText;
-    } else {
-      console.log('No input provided, staying on step 2');
+  } else if (inputText && inputText.toLowerCase() !== 'next') {
+    console.log('Date input detected, moving to step 3');
+    nextUrl = `${baseUrl}/api/step3`;
+    imageUrl = `${baseUrl}/api/image?step=step3`;
+    state.startDate = inputText;
+  } else {
+    console.log('Staying on step 2');
+    if (buttonIndex === 2) {
       inputTextContent = 'Please enter a valid date';
     }
-  } else {
-    console.log('No button detected or unexpected button index');
   }
+
+  console.log(`Action taken: ${nextUrl}`);
 
   const html = `
     <!DOCTYPE html>
