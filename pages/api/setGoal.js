@@ -5,17 +5,29 @@ import { createSuccessOGImage } from '../../lib/utils';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
+    console.log('Set Goal API accessed');
+    console.log('Request Body:', req.body);
+
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
     const fullBasePath = `https://empower-goal-tracker.vercel.app${basePath}`;
-    const { trustedData, state } = req.body;
+    
+    // Correctly accessing trustedData and state from untrustedData
+    const { trustedData, state } = req.body.untrustedData;
+    console.log('Trusted Data:', trustedData);
+    console.log('State:', state);
+
     const { goal, startDate, endDate } = JSON.parse(state || '{}');
 
     try {
       const frameMessage = Message.decode(Buffer.from(trustedData.messageBytes, 'hex'));
       const userFID = frameMessage.data.fid;
+      console.log('User FID:', userFID);
 
       const startTimestamp = convertToTimestamp(startDate, true);
       const endTimestamp = convertToTimestamp(endDate, false);
+
+      console.log('Start Timestamp:', startTimestamp);
+      console.log('End Timestamp:', endTimestamp);
 
       await db.collection('goals').add({
         user_id: userFID,

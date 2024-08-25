@@ -1,15 +1,14 @@
 export default function handler(req, res) {
   try {
     console.log('Step 2 API accessed');
-    console.log('Full Request:', req);  // Log the entire request object
-    console.log('Request Body:', req.body);  // Log the request body
+    console.log('Request Body:', req.body);
 
-    // Attempt to log the clicked button index
-    const buttonIndex = req.body['fc:frame:button:index'];
+    // Correctly accessing the button index from untrustedData
+    const buttonIndex = req.body.untrustedData.buttonIndex;
     console.log('Button Clicked:', buttonIndex);
 
     const baseUrl = 'https://empower-goal-tracker.vercel.app';
-    const goal = req.body.inputText || 'No goal specified';
+    const goal = req.body.untrustedData.inputText || 'No goal specified';
 
     const html = `
       <!DOCTYPE html>
