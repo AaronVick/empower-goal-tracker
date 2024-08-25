@@ -3,13 +3,12 @@ export default function handler(req, res) {
     console.log('Step 2 API accessed');
     console.log('Request Body:', req.body);
 
-    const buttonIndex = req.body.untrustedData?.buttonIndex;
-    const goal = req.body.untrustedData?.inputText || 'No goal specified';
-
+    // Correctly accessing the button index from untrustedData
+    const buttonIndex = req.body.untrustedData.buttonIndex;
     console.log('Button Clicked:', buttonIndex);
-    console.log('Goal:', goal);
 
     const baseUrl = 'https://empower-goal-tracker.vercel.app';
+    const goal = req.body.untrustedData.inputText || 'No goal specified';
 
     const html = `
       <!DOCTYPE html>
@@ -19,7 +18,7 @@ export default function handler(req, res) {
           <meta property="fc:frame:image" content="${baseUrl}/api/image?step=step2" />
           <meta property="fc:frame:input:text" content="Enter start date (dd/mm/yyyy)" />
           <meta property="fc:frame:button:1" content="Previous" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start?goal=${encodeURIComponent(goal)}" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/step3" />
         </head>
@@ -31,7 +30,6 @@ export default function handler(req, res) {
 
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
-
   } catch (error) {
     console.error('Error in Step 2 API:', error);
     res.status(500).send('Internal Server Error');
