@@ -3,9 +3,11 @@ export default function handler(req, res) {
     console.log('Step 2 API accessed');
     console.log('Request Body:', req.body);
 
-    // Reset the buttonIndex at the start of this frame
+    // Capture the buttonIndex from the request
     let buttonIndex = req.body.untrustedData?.buttonIndex || null;
-    console.log('Initial Button Index:', buttonIndex);
+
+    // Log the captured button index
+    console.log('Captured Button Index:', buttonIndex);
 
     const goal = req.body.untrustedData?.inputText || 'No goal specified';
     const enteredDate = req.body.untrustedData?.inputText || '';
@@ -18,10 +20,10 @@ export default function handler(req, res) {
 
     const baseUrl = 'https://empower-goal-tracker.vercel.app';
 
-    // Check if the user tried to proceed without entering a date
+    // Determine the post URL based on the button clicked
     let postUrl;
     if (!enteredDate && buttonIndex === 2) {
-      // Redirect to this same step with an error placeholder
+      // Redirect back to step 2 with an error if no date is entered
       postUrl = `${baseUrl}/api/step2?error=Please enter a valid date&goal=${encodeURIComponent(goal)}`;
     } else if (buttonIndex === 1) {
       postUrl = `${baseUrl}/api/start?goal=${encodeURIComponent(goal)}`;
@@ -51,12 +53,12 @@ export default function handler(req, res) {
       </html>
     `;
 
-    // Reset the button index before sending the response
-    buttonIndex = null;
-    console.log('Button Index Reset:', buttonIndex);
-
+    // Send the response HTML without resetting the button index
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
+
+    // Log after sending the response to track if it resets incorrectly afterward
+    console.log('Button Index after response sent:', buttonIndex);
 
   } catch (error) {
     console.error('Error in Step 2 API:', error);
