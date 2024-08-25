@@ -8,7 +8,7 @@ export default function handler(req, res) {
   console.log('Trusted Data:', JSON.stringify(trustedData, null, 2));
   console.log('Untrusted Data:', JSON.stringify(untrustedData, null, 2));
 
-  const buttonIndex = trustedData.buttonIndex || untrustedData.buttonIndex;
+  const buttonIndex = parseInt(trustedData.buttonIndex || untrustedData.buttonIndex);
   const inputText = untrustedData.inputText || '';
 
   console.log('Received Button Index:', buttonIndex);
@@ -26,20 +26,25 @@ export default function handler(req, res) {
   let imageUrl = `${baseUrl}/api/image?step=step2`;
   let inputTextContent = 'Enter start date (dd/mm/yyyy)';
 
-  // Determine action based on input rather than buttonIndex
-  if (inputText.toLowerCase() === 'prev') {
-    console.log('Previous action detected via input');
+  if (buttonIndex === 1) {
+    console.log('Previous button clicked, going back to start');
     nextUrl = `${baseUrl}/api/start`;
     imageUrl = `${baseUrl}/api/image?step=start`;
-  } else if (inputText && inputText.toLowerCase() !== 'next') {
-    console.log('Date input detected, moving to step 3');
-    nextUrl = `${baseUrl}/api/step3`;
-    imageUrl = `${baseUrl}/api/image?step=step3`;
-    state.startDate = inputText;
+  } else if (buttonIndex === 2) {
+    if (isValidDateFormat(inputText)) {
+      console.log('Next button clicked with valid date input, moving to step 3');
+      nextUrl = `${baseUrl}/api/step3`;
+      imageUrl = `${baseUrl}/api/image?step=step3&date=${encodeURIComponent(inputText)}`;
+      state.startDate = inputText;
+    } else {
+      console.log('Next button clicked with invalid or no date input, staying on step 2');
+      inputTextContent = 'Please enter a valid date (dd/mm/yyyy)';
+      imageUrl = `${baseUrl}/api/image?step=step2&error=invalid_date`;
+    }
   } else {
-    console.log('Staying on step 2');
-    if (buttonIndex === 2) {
-      inputTextContent = 'Please enter a valid date';
+    console.log('No button clicked or unexpected button index, staying on step 2');
+    if (inputText && !isValidDateFormat(inputText)) {
+      imageUrl = `${baseUrl}/api/image?step=step2&error=invalid_date`;
     }
   }
 
@@ -64,4 +69,15 @@ export default function handler(req, res) {
 
   res.setHeader('Content-Type', 'text/html');
   res.status(200).send(html);
+}
+
+function isValidDateFormat(dateString) {
+  // Basic date format validation (dd/mm/yyyy)
+  const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+  if (!regex.test(dateString)) return false;
+
+  // Check if it's a valid date
+  const [day, month, year] = dateString.split('/');
+  const date = new Date(year, month - 1, day);
+  return date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
 }
