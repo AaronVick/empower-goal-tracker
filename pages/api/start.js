@@ -30,10 +30,10 @@ export default function handler(req, res) {
   
   if (buttonIndex === 2) {
     console.log('Home button clicked, going back to index');
-    nextUrl = baseUrl;  // This should point to your index page
-  } else {
-    console.log('Next button clicked or no button info, proceeding to step2');
-    // If a goal was entered, pass it to step2
+    nextUrl = baseUrl;  // This will lead to the index.js in the pages directory
+  } else if (buttonIndex === 1 || inputText) {
+    console.log('Next button clicked or goal entered, proceeding to step2');
+    nextUrl = `${baseUrl}/api/step2`;
     if (inputText) {
       nextUrl += `?goal=${encodeURIComponent(inputText)}`;
     }
@@ -53,9 +53,6 @@ export default function handler(req, res) {
         <meta property="fc:frame:button:2" content="Home" />
         <meta property="fc:frame:post_url" content="${nextUrl}" />
       </head>
-      <body>
-        <h1>Enter Your Goal</h1>
-      </body>
     </html>
   `;
 
