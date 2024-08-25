@@ -1,20 +1,24 @@
 export default function handler(req, res) {
   console.log('Step 2 API accessed');
-  console.log('Full request body:', JSON.stringify(req.body, null, 2));
+  console.log('Raw request body:', req.body);
 
   const trustedData = req.body.trustedData || {};
   const untrustedData = req.body.untrustedData || {};
 
-  console.log('Trusted Data:', JSON.stringify(trustedData, null, 2));
-  console.log('Untrusted Data:', JSON.stringify(untrustedData, null, 2));
+  console.log('Trusted Data:', trustedData);
+  console.log('Untrusted Data:', untrustedData);
+
+  // Log raw button indices before parsing
+  console.log('Raw Trusted Button Index:', trustedData.buttonIndex);
+  console.log('Raw Untrusted Button Index:', untrustedData.buttonIndex);
 
   // Attempt to get button index from multiple sources
   const trustedButtonIndex = parseInt(trustedData.buttonIndex);
   const untrustedButtonIndex = parseInt(untrustedData.buttonIndex);
   const inputText = untrustedData.inputText || '';
 
-  console.log('Trusted Button Index:', trustedButtonIndex);
-  console.log('Untrusted Button Index:', untrustedButtonIndex);
+  console.log('Parsed Trusted Button Index:', trustedButtonIndex);
+  console.log('Parsed Untrusted Button Index:', untrustedButtonIndex);
   console.log('Input Text:', inputText);
 
   // Determine the action based on available data
@@ -26,6 +30,7 @@ export default function handler(req, res) {
   const goal = state.goal || req.query.goal || 'No goal specified';
 
   console.log('Goal:', goal);
+  console.log('Current State:', state);
 
   const baseUrl = 'https://empower-goal-tracker.vercel.app';
 
@@ -34,28 +39,30 @@ export default function handler(req, res) {
   let inputTextContent = 'Enter start date (dd/mm/yyyy)';
 
   if (action === 'previous') {
-    console.log('Going back to start');
+    console.log('Action: Going back to start');
     nextUrl = `${baseUrl}/api/start`;
     imageUrl = `${baseUrl}/api/image?step=start`;
   } else if (action === 'next') {
     if (isValidDateFormat(inputText)) {
-      console.log('Moving to step 3 with valid date');
+      console.log('Action: Moving to step 3 with valid date');
       nextUrl = `${baseUrl}/api/step3`;
       imageUrl = `${baseUrl}/api/image?step=step3&date=${encodeURIComponent(inputText)}`;
       state.startDate = inputText;
     } else {
-      console.log('Staying on step 2 due to invalid date');
+      console.log('Action: Staying on step 2 due to invalid date');
       inputTextContent = 'Please enter a valid date (dd/mm/yyyy)';
       imageUrl = `${baseUrl}/api/image?step=step2&error=invalid_date`;
     }
   } else {
-    console.log('No action taken, staying on step 2');
+    console.log('Action: No action taken, staying on step 2');
     if (inputText && !isValidDateFormat(inputText)) {
       imageUrl = `${baseUrl}/api/image?step=step2&error=invalid_date`;
     }
   }
 
-  console.log(`Next URL: ${nextUrl}`);
+  console.log('Next URL:', nextUrl);
+  console.log('Image URL:', imageUrl);
+  console.log('Input Text Content:', inputTextContent);
 
   const html = `
     <!DOCTYPE html>
@@ -79,23 +86,36 @@ export default function handler(req, res) {
 }
 
 function determineAction(trustedButtonIndex, untrustedButtonIndex, inputText) {
+  console.log('Determining action:');
+  console.log('- Trusted Button Index:', trustedButtonIndex);
+  console.log('- Untrusted Button Index:', untrustedButtonIndex);
+  console.log('- Input Text:', inputText);
+
   if (trustedButtonIndex === 1 || untrustedButtonIndex === 1) {
+    console.log('Action determined: previous');
     return 'previous';
   } else if (trustedButtonIndex === 2 || untrustedButtonIndex === 2) {
+    console.log('Action determined: next');
     return 'next';
   } else if (inputText) {
-    return 'next'; // Assume next if there's input but no clear button press
+    console.log('Action determined: next (based on input presence)');
+    return 'next';
   }
+  console.log('Action determined: none');
   return 'none';
 }
 
 function isValidDateFormat(dateString) {
-  // Basic date format validation (dd/mm/yyyy)
   const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-  if (!regex.test(dateString)) return false;
+  const isValidFormat = regex.test(dateString);
+  console.log(`Date validation for "${dateString}": ${isValidFormat}`);
+  
+  if (!isValidFormat) return false;
 
-  // Check if it's a valid date
   const [day, month, year] = dateString.split('/');
   const date = new Date(year, month - 1, day);
-  return date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
+  const isValidDate = date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
+  console.log(`Date validity check for "${dateString}": ${isValidDate}`);
+  
+  return isValidDate;
 }
