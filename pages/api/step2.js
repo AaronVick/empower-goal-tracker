@@ -1,4 +1,6 @@
 import { Timestamp } from 'firebase-admin/firestore';
+import fs from 'fs';
+import path from 'path';
 
 export default function handler(req, res) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -14,6 +16,11 @@ export default function handler(req, res) {
   // Get current date as a Timestamp
   const currentDate = Timestamp.now();
 
+  // Read the image file and convert it to a data URI
+  const imagePath = path.join(process.cwd(), 'public', 'addGoal.png');
+  const imageBuffer = fs.readFileSync(imagePath);
+  const dataUri = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
   res.setHeader('Content-Type', 'text/html');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -24,7 +31,7 @@ export default function handler(req, res) {
     <html>
     <head>
       <meta property="fc:frame" content="vNext" />
-      <meta property="fc:frame:image" content="${fullBasePath}/api/image?name=addGoal" />
+      <meta property="fc:frame:image" content="${dataUri}" />
       <meta property="fc:frame:input:text" content="Enter start date (dd/mm/yyyy)" />
       <meta property="fc:frame:button:1" content="Previous" />
       <meta property="fc:frame:post_url:1" content="${fullBasePath}/api/start" />

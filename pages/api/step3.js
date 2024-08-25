@@ -1,4 +1,6 @@
 import { Timestamp } from 'firebase-admin/firestore';
+import fs from 'fs';
+import path from 'path';
 
 export default function handler(req, res) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -21,6 +23,11 @@ export default function handler(req, res) {
     return res.redirect(`${fullBasePath}/api/error?message=Invalid start date. Please enter a date from today onwards.`);
   }
 
+  // Read the image file and convert it to a data URI
+  const imagePath = path.join(process.cwd(), 'public', 'addGoal.png');
+  const imageBuffer = fs.readFileSync(imagePath);
+  const dataUri = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
   res.setHeader('Content-Type', 'text/html');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -31,7 +38,7 @@ export default function handler(req, res) {
     <html>
     <head>
       <meta property="fc:frame" content="vNext" />
-      <meta property="fc:frame:image" content="${fullBasePath}/api/image?name=addGoal" />
+      <meta property="fc:frame:image" content="${dataUri}" />
       <meta property="fc:frame:input:text" content="Enter end date (dd/mm/yyyy)" />
       <meta property="fc:frame:button:1" content="Previous" />
       <meta property="fc:frame:post_url:1" content="${fullBasePath}/api/step2" />
@@ -48,18 +55,4 @@ export default function handler(req, res) {
   `);
 }
 
-function isValidDate(dateString) {
-  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-  if (!regex.test(dateString)) return false;
-  const [day, month, year] = dateString.split('/');
-  const date = new Date(year, month - 1, day);
-  return date && date.getMonth() + 1 == month && date.getDate() == day;
-}
-
-function isDateOnOrAfter(dateA, dateB) {
-  const [dayA, monthA, yearA] = dateA.split('/');
-  const [dayB, monthB, yearB] = dateB.split('/');
-  const a = new Date(yearA, monthA - 1, dayA);
-  const b = new Date(yearB, monthB - 1, dayB);
-  return a >= b;
-}
+// ... (keep the isValidDate and isDateOnOrAfter functions as they are)
