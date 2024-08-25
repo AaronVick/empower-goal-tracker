@@ -22,12 +22,16 @@ export default function handler(req, res) {
   }
 
   res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   res.status(200).send(`
     <!DOCTYPE html>
     <html>
     <head>
       <meta property="fc:frame" content="vNext" />
-      <meta property="fc:frame:image" content="${basePath}/addGoal.png" />
+      <meta property="fc:frame:image" content="${fullBasePath}/api/image?name=addGoal" />
       <meta property="fc:frame:input:text" content="Enter end date (dd/mm/yyyy)" />
       <meta property="fc:frame:button:1" content="Previous" />
       <meta property="fc:frame:post_url:1" content="${fullBasePath}/api/step2" />
