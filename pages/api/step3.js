@@ -10,9 +10,9 @@ export default function handler(req, res) {
         <meta property="fc:frame:image" content="${baseUrl}/api/image?step=step3" />
         <meta property="fc:frame:input:text" content="Enter end date (dd/mm/yyyy)" />
         <meta property="fc:frame:button:1" content="Previous" />
-        <meta property="fc:frame:post_url:1" content="${baseUrl}/api/step2" />
+        <meta property="fc:frame:post_url" content="${baseUrl}/api/step2" />
         <meta property="fc:frame:button:2" content="Next" />
-        <meta property="fc:frame:post_url:2" content="${baseUrl}/api/review" />
+        <meta property="fc:frame:post_url" content="${baseUrl}/api/review" />
       </head>
       <body>
         <h1>Enter End Date</h1>

@@ -11,9 +11,9 @@ export default function handler(req, res) {
           <meta property="fc:frame:image" content="${baseUrl}/api/image?step=step2" />
           <meta property="fc:frame:input:text" content="Enter start date (dd/mm/yyyy)" />
           <meta property="fc:frame:button:1" content="Previous" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
           <meta property="fc:frame:button:2" content="Next" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/step3" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api/step3" />
         </head>
         <body>
           <h1>Enter Start Date for: ${goal}</h1>
