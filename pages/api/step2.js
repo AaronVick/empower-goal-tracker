@@ -1,9 +1,10 @@
 export default function handler(req, res) {
   try {
     console.log('Step 2 API accessed');
-    console.log('Request Body:', req.body);
+    console.log('Full Request:', req);  // Log the entire request object
+    console.log('Request Body:', req.body);  // Log the request body
 
-    // Log the clicked button index
+    // Attempt to log the clicked button index
     const buttonIndex = req.body['fc:frame:button:index'];
     console.log('Button Clicked:', buttonIndex);
 
