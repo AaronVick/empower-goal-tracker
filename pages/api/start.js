@@ -8,8 +8,10 @@ export default function handler(req, res) {
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${baseUrl}/api/image?step=start" />
         <meta property="fc:frame:input:text" content="Enter your goal" />
-        <meta property="fc:frame:button:1" content="Next" />
-        <meta property="fc:frame:post_url" content="${baseUrl}/api/step2" />
+        <meta property="fc:frame:button:1" content="Previous" />
+        <meta property="fc:frame:post_url:1" content="${baseUrl}"
+        <meta property="fc:frame:button:2" content="Next" />
+        <meta property="fc:frame:post_url:2" content="${baseUrl}/api/step2" />
       </head>
       <body>
         <h1>Enter Your Goal</h1>
