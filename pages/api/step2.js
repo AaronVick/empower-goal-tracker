@@ -8,11 +8,18 @@ export default function handler(req, res) {
   console.log('Trusted Data:', JSON.stringify(trustedData, null, 2));
   console.log('Untrusted Data:', JSON.stringify(untrustedData, null, 2));
 
-  const buttonIndex = parseInt(trustedData.buttonIndex || untrustedData.buttonIndex);
+  // Attempt to get button index from multiple sources
+  const trustedButtonIndex = parseInt(trustedData.buttonIndex);
+  const untrustedButtonIndex = parseInt(untrustedData.buttonIndex);
   const inputText = untrustedData.inputText || '';
 
-  console.log('Received Button Index:', buttonIndex);
+  console.log('Trusted Button Index:', trustedButtonIndex);
+  console.log('Untrusted Button Index:', untrustedButtonIndex);
   console.log('Input Text:', inputText);
+
+  // Determine the action based on available data
+  const action = determineAction(trustedButtonIndex, untrustedButtonIndex, inputText);
+  console.log('Determined Action:', action);
 
   // Get goal from state or query parameter
   const state = JSON.parse(untrustedData.state || '{}');
@@ -26,29 +33,29 @@ export default function handler(req, res) {
   let imageUrl = `${baseUrl}/api/image?step=step2`;
   let inputTextContent = 'Enter start date (dd/mm/yyyy)';
 
-  if (buttonIndex === 1) {
-    console.log('Previous button clicked, going back to start');
+  if (action === 'previous') {
+    console.log('Going back to start');
     nextUrl = `${baseUrl}/api/start`;
     imageUrl = `${baseUrl}/api/image?step=start`;
-  } else if (buttonIndex === 2) {
+  } else if (action === 'next') {
     if (isValidDateFormat(inputText)) {
-      console.log('Next button clicked with valid date input, moving to step 3');
+      console.log('Moving to step 3 with valid date');
       nextUrl = `${baseUrl}/api/step3`;
       imageUrl = `${baseUrl}/api/image?step=step3&date=${encodeURIComponent(inputText)}`;
       state.startDate = inputText;
     } else {
-      console.log('Next button clicked with invalid or no date input, staying on step 2');
+      console.log('Staying on step 2 due to invalid date');
       inputTextContent = 'Please enter a valid date (dd/mm/yyyy)';
       imageUrl = `${baseUrl}/api/image?step=step2&error=invalid_date`;
     }
   } else {
-    console.log('No button clicked or unexpected button index, staying on step 2');
+    console.log('No action taken, staying on step 2');
     if (inputText && !isValidDateFormat(inputText)) {
       imageUrl = `${baseUrl}/api/image?step=step2&error=invalid_date`;
     }
   }
 
-  console.log(`Action taken: ${nextUrl}`);
+  console.log(`Next URL: ${nextUrl}`);
 
   const html = `
     <!DOCTYPE html>
@@ -69,6 +76,17 @@ export default function handler(req, res) {
 
   res.setHeader('Content-Type', 'text/html');
   res.status(200).send(html);
+}
+
+function determineAction(trustedButtonIndex, untrustedButtonIndex, inputText) {
+  if (trustedButtonIndex === 1 || untrustedButtonIndex === 1) {
+    return 'previous';
+  } else if (trustedButtonIndex === 2 || untrustedButtonIndex === 2) {
+    return 'next';
+  } else if (inputText) {
+    return 'next'; // Assume next if there's input but no clear button press
+  }
+  return 'none';
 }
 
 function isValidDateFormat(dateString) {
