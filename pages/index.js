@@ -8,7 +8,7 @@ export default function handler(req, res) {
     <html>
       <head>
         <meta property="fc:frame" content="vNext" />
-        <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
+        <meta property="fc:frame:image" content="https://empower-goal-tracker.vercel.app/empower.png" />
         
         <!-- Start a Goal Button -->
         <meta property="fc:frame:button:1" content="Start a Goal" />
