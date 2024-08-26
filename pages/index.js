@@ -18,6 +18,34 @@ export default function Home() {
   );
 }
 
-export async function getServerSideProps() {
-  return { props: {} };
+export async function handler(req, res) {
+  console.log('Index handler accessed');
+  console.log('Request method:', req.method);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+  if (req.method === 'POST') {
+    const { untrustedData } = req.body;
+    const buttonIndex = untrustedData?.buttonIndex;
+
+    console.log('Button clicked:', buttonIndex);
+
+    if (buttonIndex === 1) {
+      console.log('Redirecting to Start a Goal');
+      return res.redirect(303, `${process.env.NEXT_PUBLIC_BASE_PATH}/api/start`);
+    } else if (buttonIndex === 2) {
+      console.log('Redirecting to Review Goals');
+      // Assuming you need to pass the FID, you would get it from untrustedData
+      const fid = untrustedData?.fid;
+      return res.redirect(303, `${process.env.NEXT_PUBLIC_BASE_PATH}/api/reviewGoals?fid=${fid}`);
+    }
+  }
+
+  // If it's not a POST request or no button was clicked, just render the frame
+  const html = Home().props.children;
+  res.setHeader('Content-Type', 'text/html');
+  res.status(200).send(html);
 }
+
+export const config = {
+  runtime: 'edge',
+};

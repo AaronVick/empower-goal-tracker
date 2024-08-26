@@ -3,7 +3,9 @@ import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
-  
+  console.log('Request method:', req.method);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+
   // Initialize Firebase
   const firebaseConfig = {
     type: process.env.FIREBASE_TYPE,
@@ -12,14 +14,23 @@ export default async function handler(req, res) {
     privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   };
-  
+
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const { searchParams } = new URL(req.url);
-  const fid = searchParams.get('fid'); // Assuming FID is passed as a query param
+  let fid;
+  if (req.method === 'POST') {
+    const { untrustedData } = req.body;
+    fid = untrustedData?.fid;
+  } else {
+    const { searchParams } = new URL(req.url);
+    fid = searchParams.get('fid');
+  }
+
+  console.log('FID:', fid);
 
   if (!fid) {
+    console.log('No FID provided');
     return res.status(400).json({ error: "FID is required" });
   }
 
@@ -43,7 +54,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${imageUrl}" />
             <meta property="fc:frame:button:1" content="Return Home" />
-            <meta property="fc:frame:post_url:1" content="${process.env.NEXT_PUBLIC_BASE_PATH}" />
+            <meta property="fc:frame:post_url" content="${process.env.NEXT_PUBLIC_BASE_PATH}" />
           </head>
         </html>
       `;
@@ -61,7 +72,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${imageUrl}" />
             <meta property="fc:frame:button:1" content="Return Home" />
-            <meta property="fc:frame:post_url:1" content="${process.env.NEXT_PUBLIC_BASE_PATH}" />
+            <meta property="fc:frame:post_url" content="${process.env.NEXT_PUBLIC_BASE_PATH}" />
           </head>
         </html>
       `;
@@ -72,3 +83,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Error fetching user goal" });
   }
 }
+
+export const config = {
+  runtime: 'edge',
+};
