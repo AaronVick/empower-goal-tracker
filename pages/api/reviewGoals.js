@@ -5,6 +5,7 @@ export default async function handler(req, res) {
   console.log('Review Goals accessed');
   console.log('Request method:', req.method);
   console.log('Request body:', req.body);
+  console.log('Request query:', req.query);
 
   // Initialize Firebase
   const firebaseConfig = {
@@ -34,16 +35,19 @@ export default async function handler(req, res) {
 
   // Fetch user goals from Firestore
   try {
+    console.log('Attempting to fetch goal for FID:', fid);
     const docRef = doc(db, "goals", fid);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log('User goal data:', data);
+      console.log('User goal data found:', data);
 
       // Pass the data to ogReview.js for OG image generation
       const imageUrl = `${process.env.NEXT_PUBLIC_BASE_PATH}/api/ogReview?goal=${encodeURIComponent(data.goal)}&deadline=${encodeURIComponent(data.deadline)}&progress=${encodeURIComponent(data.progress)}`;
 
+      console.log('Generated image URL:', imageUrl);
+
       // Return the frame with proper meta tags
       const html = `
         <!DOCTYPE html>
@@ -56,11 +60,14 @@ export default async function handler(req, res) {
           </head>
         </html>
       `;
+      console.log('Sending HTML response for existing goal');
       return res.setHeader('Content-Type', 'text/html').status(200).send(html);
 
     } else {
-      console.log('No goal found for this user.');
+      console.log('No goal found for FID:', fid);
       const imageUrl = `${process.env.NEXT_PUBLIC_BASE_PATH}/api/ogReview?error=no_goal`;
+
+      console.log('Generated error image URL:', imageUrl);
 
       // Return the frame with proper meta tags
       const html = `
@@ -74,6 +81,7 @@ export default async function handler(req, res) {
           </head>
         </html>
       `;
+      console.log('Sending HTML response for no goal');
       return res.setHeader('Content-Type', 'text/html').status(200).send(html);
     }
   } catch (error) {

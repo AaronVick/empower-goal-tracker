@@ -14,19 +14,18 @@ export default async function handler(req) {
     const progress = searchParams.get('progress');
     const error = searchParams.get('error');
 
+    console.log('Received parameters:', { goal, deadline, progress, error });
+
     let message;
-    if (error) {
-      switch (error) {
-        case 'no_goal':
-          message = 'No goal set. Start by setting a goal!';
-          break;
-        default:
-          message = 'An error occurred';
-      }
+    if (error === 'no_goal') {
+      message = 'No goal found. Start by setting a goal!';
+      console.log('No goal error detected');
     } else if (goal) {
       message = `Goal: ${goal}\nDeadline: ${deadline}\nProgress: ${progress}%`;
+      console.log('Goal data received');
     } else {
       message = 'An error occurred';
+      console.log('Unknown error occurred');
     }
 
     console.log('Generated message:', message);
@@ -48,7 +47,7 @@ export default async function handler(req) {
             flexDirection: 'column',
           }}
         >
-          <h1 style={{ marginBottom: '20px' }}>Your Goal</h1>
+          <h1 style={{ marginBottom: '20px' }}>{error ? 'Error' : 'Your Goal'}</h1>
           <p style={{ fontSize: '40px', whiteSpace: 'pre-wrap' }}>{message}</p>
         </div>
       ),

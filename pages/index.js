@@ -22,26 +22,36 @@ export default function Home() {
 
 export async function getServerSideProps(context) {
   const { req, res } = context;
+  console.log('getServerSideProps called');
+  console.log('Request method:', req.method);
 
   if (req.method === 'POST') {
-    const body = await getRawBody(req);
-    const data = JSON.parse(body);
-    const buttonIndex = data?.untrustedData?.buttonIndex;
+    try {
+      const body = await getRawBody(req);
+      console.log('Raw body:', body);
+      const data = JSON.parse(body);
+      console.log('Parsed data:', data);
+      const buttonIndex = data?.untrustedData?.buttonIndex;
+      console.log('Button index:', buttonIndex);
 
-    if (buttonIndex === 1) {
-      res.writeHead(302, { Location: `${process.env.NEXT_PUBLIC_BASE_PATH}/api/start` });
-      res.end();
-    } else if (buttonIndex === 2) {
-      const fid = data?.untrustedData?.fid;
-      res.writeHead(302, { Location: `${process.env.NEXT_PUBLIC_BASE_PATH}/api/reviewGoals?fid=${fid}` });
-      res.end();
+      if (buttonIndex === 1) {
+        console.log('Redirecting to start goal');
+        res.writeHead(302, { Location: `${process.env.NEXT_PUBLIC_BASE_PATH}/api/start` });
+        res.end();
+      } else if (buttonIndex === 2) {
+        const fid = data?.untrustedData?.fid;
+        console.log('Redirecting to review goals with FID:', fid);
+        res.writeHead(302, { Location: `${process.env.NEXT_PUBLIC_BASE_PATH}/api/reviewGoals?fid=${fid}` });
+        res.end();
+      }
+    } catch (error) {
+      console.error('Error in getServerSideProps:', error);
     }
   }
 
   return { props: {} };
 }
 
-// Helper function to get raw body from request
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
