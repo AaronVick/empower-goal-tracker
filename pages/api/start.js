@@ -20,7 +20,11 @@ export default function handler(req, res) {
     console.log('Button Index:', buttonIndex);
     console.log('Input Text:', inputText);
 
-    if (currentStep === 'start') {
+    if (currentStep === 'error') {
+      // If we're coming from an error state, stepGoal will contain the step we need to return to
+      currentStep = process.env.stepGoal;
+      error = null;
+    } else if (currentStep === 'start') {
       console.log('Processing START step');
       if (buttonIndex === 2) {
         if (inputText.trim()) {
@@ -31,6 +35,7 @@ export default function handler(req, res) {
         } else {
           console.log('No goal entered, showing error');
           error = 'no_goal';
+          process.env.stepGoal = 'start';  // Ensure we return to start after error
         }
       }
     } else if (currentStep === '2') {
@@ -47,6 +52,7 @@ export default function handler(req, res) {
         } else {
           console.log('Invalid start date, showing error');
           error = 'invalid_start_date';
+          process.env.stepGoal = '2';  // Ensure we return to step 2 after error
         }
       }
     } else if (currentStep === '3') {
@@ -63,13 +69,19 @@ export default function handler(req, res) {
         } else {
           console.log('Invalid end date, showing error');
           error = 'invalid_end_date';
+          process.env.stepGoal = '3';  // Ensure we return to step 3 after error
         }
       }
     }
   }
 
+  if (error) {
+    currentStep = 'error';
+  }
+
   console.log('Final Current Step:', currentStep);
   console.log('Error:', error);
+  console.log('stepGoal:', process.env.stepGoal);
   const html = generateHtml(currentStep, baseUrl, error);
 
   console.log('Sending HTML response');
@@ -84,7 +96,7 @@ function generateHtml(step, baseUrl, error) {
   let imageUrl, inputTextContent, button1Content, button2Content, inputValue;
 
   if (error) {
-    imageUrl = `${baseUrl}/api/og?error=${error}&step=${step}`;
+    imageUrl = `${baseUrl}/api/og?error=${error}&step=${process.env.stepGoal}`;
     button1Content = "Try Again";
     button2Content = "";
     inputTextContent = "";
