@@ -1,13 +1,15 @@
 export default function handler(req, res) {
   console.log('Goal Tracker API accessed');
-  
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-  let currentStep = req.query.step || 'start'; // Determine the current step
+  
+  // Initialize variables
+  let currentStep = req.query.step || 'start';
   let nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
   let imageUrl = `${baseUrl}/api/image?step=${currentStep}`;
   let inputTextContent = '';
   let inputText = '';
 
+  // Handle POST requests (user interaction with the form)
   if (req.method === 'POST') {
     console.log('Handling POST request');
     const trustedData = req.body.trustedData || {};
@@ -56,7 +58,7 @@ export default function handler(req, res) {
     }
   } else if (req.method === 'GET') {
     console.log('Handling GET request');
-    // Here we can manage initial frame loading without input
+    // Initial frame loading
     if (currentStep === 'start') {
       inputTextContent = 'Enter your goal';
     } else if (currentStep === 'step2') {
@@ -68,7 +70,7 @@ export default function handler(req, res) {
     return res.status(405).send('Method Not Allowed');
   }
 
-  // Determine the appropriate meta tags based on the current step
+  // Set up meta tags for the current step
   let metaTags = '';
   if (currentStep === 'start') {
     metaTags = `
@@ -97,6 +99,7 @@ export default function handler(req, res) {
     `;
   }
 
+  // Return the HTML with meta tags
   const html = `
     <!DOCTYPE html>
     <html>
