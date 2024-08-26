@@ -1,22 +1,22 @@
 import { ImageResponse } from '@vercel/og';
 
-export default function handler(req, res) {
-  const { step, error } = req.query;
+export default function handler(req) {
+  const { error } = req.query;
 
-  let title, message;
+  let message;
 
-  if (error === 'no_goal') {
-    title = 'Error';
-    message = 'Please enter a goal';
-  } else if (error === 'invalid_start_date') {
-    title = 'Error';
-    message = 'Please enter a valid start date (dd/mm/yyyy)';
-  } else if (error === 'invalid_end_date') {
-    title = 'Error';
-    message = 'Please enter a valid end date (dd/mm/yyyy)';
-  } else {
-    title = `Step ${step}`;
-    message = 'Enter the required information';
+  switch (error) {
+    case 'no_goal':
+      message = 'Please enter a goal';
+      break;
+    case 'invalid_start_date':
+      message = 'Please enter a valid start date (dd/mm/yyyy)';
+      break;
+    case 'invalid_end_date':
+      message = 'Please enter a valid end date (dd/mm/yyyy)';
+      break;
+    default:
+      message = 'An error occurred';
   }
 
   return new ImageResponse(
@@ -34,7 +34,7 @@ export default function handler(req, res) {
           alignItems: 'center',
         }}
       >
-        <h1>{title}</h1>
+        <h1>Error</h1>
         <p>{message}</p>
       </div>
     ),

@@ -93,7 +93,7 @@ export default function handler(req, res) {
 function generateHtml(step, baseUrl, error) {
   console.log('Generating HTML for step:', step);
   console.log('Error:', error);
-  
+
   let imageUrl, inputTextContent, button1Content, button2Content, inputValue;
 
   if (error) {
@@ -103,9 +103,9 @@ function generateHtml(step, baseUrl, error) {
     inputTextContent = "";
     inputValue = "";
   } else {
-    // Use the same PNG for all non-error states
+    // Use addGoal.png for all non-error states
     imageUrl = `${baseUrl}/addGoal.png`;
-    
+
     if (step === null || step === 'start') {
       inputTextContent = "Enter your goal";
       button1Content = "Home";
@@ -128,6 +128,31 @@ function generateHtml(step, baseUrl, error) {
       inputValue = "";
     }
   }
+
+  console.log('Image URL:', imageUrl);
+  console.log('Input Text Content:', inputTextContent);
+  console.log('Button 1 Content:', button1Content);
+  console.log('Button 2 Content:', button2Content);
+  console.log('Input Value:', inputValue);
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta property="fc:frame" content="vNext" />
+        <meta property="fc:frame:image" content="${imageUrl}" />
+        <meta property="fc:frame:input:text" content="${inputTextContent}" />
+        <meta property="fc:frame:input:text:value" content="${inputValue}" />
+        <meta property="fc:frame:button:1" content="${button1Content}" />
+        ${button2Content ? `<meta property="fc:frame:button:2" content="${button2Content}" />` : ''}
+        <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
+      </head>
+    </html>
+  `;
+
+  console.log('Generated HTML:', html);
+  return html;
+}
 
   console.log('Image URL:', imageUrl);
   console.log('Input Text Content:', inputTextContent);
