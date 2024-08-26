@@ -1,56 +1,71 @@
 export default function handler(req, res) {
   console.log('Goal Tracker API accessed');
-  console.log('Full request body:', JSON.stringify(req.body, null, 2));
   
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-  const trustedData = req.body.trustedData || {};
-  const untrustedData = req.body.untrustedData || {};
-  
-  const buttonIndex = parseInt(trustedData.buttonIndex || untrustedData.buttonIndex);
-  const inputText = untrustedData.inputText || '';
-  
-  console.log('Received Button Index:', buttonIndex);
-  console.log('Input Text:', inputText);
-
   let currentStep = req.query.step || 'start'; // Determine the current step
   let nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
   let imageUrl = `${baseUrl}/api/image?step=${currentStep}`;
   let inputTextContent = '';
+  let inputText = '';
 
-  if (currentStep === 'start') {
-    if (buttonIndex === 1 && inputText) {
-      console.log('Proceeding to Step 2');
-      process.env.userSetGoal = inputText;  // Store the goal in the environment variable
-      currentStep = 'step2';
-      nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
-    } else {
-      inputTextContent = 'Please enter your goal';
+  if (req.method === 'POST') {
+    console.log('Handling POST request');
+    const trustedData = req.body.trustedData || {};
+    const untrustedData = req.body.untrustedData || {};
+    
+    const buttonIndex = parseInt(trustedData.buttonIndex || untrustedData.buttonIndex);
+    inputText = untrustedData.inputText || '';
+  
+    console.log('Received Button Index:', buttonIndex);
+    console.log('Input Text:', inputText);
+
+    if (currentStep === 'start') {
+      if (buttonIndex === 1 && inputText) {
+        console.log('Proceeding to Step 2');
+        process.env.userSetGoal = inputText;  // Store the goal in the environment variable
+        currentStep = 'step2';
+        nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
+      } else {
+        inputTextContent = 'Please enter your goal';
+      }
+    } else if (currentStep === 'step2') {
+      if (buttonIndex === 1) {
+        console.log('Returning to Start');
+        currentStep = 'start';
+        nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
+      } else if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+        console.log('Proceeding to Step 3');
+        process.env.userStartDate = inputText;  // Store the start date in the environment variable
+        currentStep = 'step3';
+        nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
+      } else {
+        inputTextContent = 'Please enter a valid start date (dd/mm/yyyy)';
+      }
+    } else if (currentStep === 'step3') {
+      if (buttonIndex === 1) {
+        console.log('Returning to Step 2');
+        currentStep = 'step2';
+        nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
+      } else if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+        console.log('Proceeding to Results');
+        process.env.userEndDate = inputText;  // Store the end date in the environment variable
+        nextUrl = `${baseUrl}/api/results`;
+      } else {
+        inputTextContent = 'Please enter a valid end date (dd/mm/yyyy)';
+      }
     }
-  } else if (currentStep === 'step2') {
-    if (buttonIndex === 1) {
-      console.log('Returning to Start');
-      currentStep = 'start';
-      nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
-    } else if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-      console.log('Proceeding to Step 3');
-      process.env.userStartDate = inputText;  // Store the start date in the environment variable
-      currentStep = 'step3';
-      nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
-    } else {
-      inputTextContent = 'Please enter a valid start date (dd/mm/yyyy)';
+  } else if (req.method === 'GET') {
+    console.log('Handling GET request');
+    // Here we can manage initial frame loading without input
+    if (currentStep === 'start') {
+      inputTextContent = 'Enter your goal';
+    } else if (currentStep === 'step2') {
+      inputTextContent = 'Enter start date (dd/mm/yyyy)';
+    } else if (currentStep === 'step3') {
+      inputTextContent = 'Enter end date (dd/mm/yyyy)';
     }
-  } else if (currentStep === 'step3') {
-    if (buttonIndex === 1) {
-      console.log('Returning to Step 2');
-      currentStep = 'step2';
-      nextUrl = `${baseUrl}/api/goalTracker?step=${currentStep}`;
-    } else if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-      console.log('Proceeding to Results');
-      process.env.userEndDate = inputText;  // Store the end date in the environment variable
-      nextUrl = `${baseUrl}/api/results`;
-    } else {
-      inputTextContent = 'Please enter a valid end date (dd/mm/yyyy)';
-    }
+  } else {
+    return res.status(405).send('Method Not Allowed');
   }
 
   // Determine the appropriate meta tags based on the current step
