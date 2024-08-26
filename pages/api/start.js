@@ -7,8 +7,8 @@ export default function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
   console.log('Base URL:', baseUrl);
 
-  // Retrieve the current step from the environment variable, default to null
   let currentStep = process.env.stepGoal || null;
+  let error = null;
   console.log('Initial Current Step:', currentStep);
 
   if (req.method === 'POST') {
@@ -20,92 +20,106 @@ export default function handler(req, res) {
     console.log('Button Index:', buttonIndex);
     console.log('Input Text:', inputText);
 
-    // Handle step transitions
     if (currentStep === null || currentStep === 'start') {
       console.log('Processing START step');
-      if (buttonIndex === 2 && inputText.trim()) {
-        console.log('Valid goal entered:', inputText);
-        process.env.userSetGoal = inputText;
-        process.env.stepGoal = '2';
-        currentStep = '2';
-        console.log('Moving to Step 2');
-      } else {
-        console.log('Staying on START step');
-        process.env.stepGoal = 'start';
-        currentStep = 'start';
+      if (buttonIndex === 2) {
+        if (inputText.trim()) {
+          console.log('Valid goal entered:', inputText);
+          process.env.userSetGoal = inputText;
+          process.env.stepGoal = '2';
+          currentStep = '2';
+        } else {
+          console.log('No goal entered, showing error');
+          error = 'no_goal';
+        }
       }
     } else if (currentStep === '2') {
-      console.log('Processing Step 2');
       if (buttonIndex === 1) {
         console.log('Previous button clicked, returning to START');
         process.env.stepGoal = 'start';
         currentStep = 'start';
-      } else if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        console.log('Valid start date entered:', inputText);
-        process.env.userStartDate = inputText;
-        process.env.stepGoal = '3';
-        currentStep = '3';
-        console.log('Moving to Step 3');
-      } else {
-        console.log('Invalid date or no action, staying on Step 2');
+      } else if (buttonIndex === 2) {
+        if (isValidDateFormat(inputText)) {
+          console.log('Valid start date entered:', inputText);
+          process.env.userStartDate = inputText;
+          process.env.stepGoal = '3';
+          currentStep = '3';
+        } else {
+          console.log('Invalid start date, showing error');
+          error = 'invalid_start_date';
+        }
       }
     } else if (currentStep === '3') {
-      console.log('Processing Step 3');
       if (buttonIndex === 1) {
         console.log('Previous button clicked, returning to Step 2');
         process.env.stepGoal = '2';
         currentStep = '2';
-      } else if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        console.log('Valid end date entered:', inputText);
-        process.env.userEndDate = inputText;
-        console.log('Goal setting complete, moving to results');
-        process.env.stepGoal = 'results';
-        currentStep = 'results';
-      } else {
-        console.log('Invalid date or no action, staying on Step 3');
+      } else if (buttonIndex === 2) {
+        if (isValidDateFormat(inputText)) {
+          console.log('Valid end date entered:', inputText);
+          process.env.userEndDate = inputText;
+          process.env.stepGoal = 'results';
+          currentStep = 'results';
+        } else {
+          console.log('Invalid end date, showing error');
+          error = 'invalid_end_date';
+        }
       }
     }
   }
 
   console.log('Final Current Step:', currentStep);
-  const html = generateHtml(currentStep, baseUrl);
+  console.log('Error:', error);
+  const html = generateHtml(currentStep, baseUrl, error);
   
   console.log('Sending HTML response');
   res.setHeader('Content-Type', 'text/html');
   res.status(200).send(html);
 }
 
-function generateHtml(step, baseUrl) {
+function generateHtml(step, baseUrl, error) {
   console.log('Generating HTML for step:', step);
+  console.log('Error:', error);
   
-  let imageUrl, inputTextContent, button1Content, button2Content;
+  let imageUrl, inputTextContent, button1Content, button2Content, inputValue;
 
-  if (step === null || step === 'start') {
+  if (error) {
+    imageUrl = `${baseUrl}/api/image?step=${step}&error=${error}`;
+    button1Content = "Try Again";
+    button2Content = "";
+    inputTextContent = "";
+    inputValue = "";
+  } else if (step === null || step === 'start') {
     imageUrl = `${baseUrl}/api/image?step=start`;
     inputTextContent = "Enter your goal";
     button1Content = "Home";
     button2Content = "Next";
+    inputValue = process.env.userSetGoal || "";
   } else if (step === '2') {
     imageUrl = `${baseUrl}/api/image?step=step2`;
     inputTextContent = "Enter start date (dd/mm/yyyy)";
     button1Content = "Previous";
     button2Content = "Next";
+    inputValue = process.env.userStartDate || "";
   } else if (step === '3') {
     imageUrl = `${baseUrl}/api/image?step=step3`;
     inputTextContent = "Enter end date (dd/mm/yyyy)";
     button1Content = "Previous";
     button2Content = "Set Goal";
+    inputValue = process.env.userEndDate || "";
   } else if (step === 'results') {
     imageUrl = `${baseUrl}/api/image?step=results`;
     inputTextContent = "Goal set successfully!";
     button1Content = "New Goal";
     button2Content = "Share";
+    inputValue = "";
   }
 
   console.log('Image URL:', imageUrl);
   console.log('Input Text Content:', inputTextContent);
   console.log('Button 1 Content:', button1Content);
   console.log('Button 2 Content:', button2Content);
+  console.log('Input Value:', inputValue);
 
   const html = `
     <!DOCTYPE html>
@@ -114,8 +128,9 @@ function generateHtml(step, baseUrl) {
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
         <meta property="fc:frame:input:text" content="${inputTextContent}" />
+        <meta property="fc:frame:input:text:value" content="${inputValue}" />
         <meta property="fc:frame:button:1" content="${button1Content}" />
-        <meta property="fc:frame:button:2" content="${button2Content}" />
+        ${button2Content ? `<meta property="fc:frame:button:2" content="${button2Content}" />` : ''}
         <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
       </head>
     </html>
