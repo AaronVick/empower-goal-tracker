@@ -84,7 +84,7 @@ export default function handler(req, res) {
   console.log('Final Current Step:', currentStep);
   console.log('Error:', error);
   const html = generateHtml(currentStep, baseUrl, error);
-  
+
   console.log('Sending HTML response');
   res.setHeader('Content-Type', 'text/html');
   res.status(200).send(html);
@@ -128,31 +128,6 @@ function generateHtml(step, baseUrl, error) {
       inputValue = "";
     }
   }
-
-  console.log('Image URL:', imageUrl);
-  console.log('Input Text Content:', inputTextContent);
-  console.log('Button 1 Content:', button1Content);
-  console.log('Button 2 Content:', button2Content);
-  console.log('Input Value:', inputValue);
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta property="fc:frame" content="vNext" />
-        <meta property="fc:frame:image" content="${imageUrl}" />
-        <meta property="fc:frame:input:text" content="${inputTextContent}" />
-        <meta property="fc:frame:input:text:value" content="${inputValue}" />
-        <meta property="fc:frame:button:1" content="${button1Content}" />
-        ${button2Content ? `<meta property="fc:frame:button:2" content="${button2Content}" />` : ''}
-        <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
-      </head>
-    </html>
-  `;
-
-  console.log('Generated HTML:', html);
-  return html;
-}
 
   console.log('Image URL:', imageUrl);
   console.log('Input Text Content:', inputTextContent);
