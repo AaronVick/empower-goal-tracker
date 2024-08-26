@@ -6,12 +6,14 @@ export const config = {
 
 export default async function handler(req) {
   console.log('OG Image Generator accessed');
-  
+
   try {
     const { searchParams } = new URL(req.url);
     const error = searchParams.get('error');
+    const step = searchParams.get('step');
 
     console.log('Error parameter:', error);
+    console.log('Step parameter:', step);
 
     if (!error) {
       return new Response('Missing error parameter', { status: 400 });
@@ -51,7 +53,7 @@ export default async function handler(req) {
             flexDirection: 'column',
           }}
         >
-          <h1 style={{ marginBottom: '20px' }}>Error</h1>
+          <h1 style={{ marginBottom: '20px' }}>Error in Step {step}</h1>
           <p style={{ fontSize: '40px' }}>{message}</p>
         </div>
       ),

@@ -7,7 +7,7 @@ export default function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
   console.log('Base URL:', baseUrl);
 
-  let currentStep = process.env.stepGoal || null;
+  let currentStep = process.env.stepGoal || 'start';
   let error = null;
   console.log('Initial Current Step:', currentStep);
 
@@ -20,7 +20,7 @@ export default function handler(req, res) {
     console.log('Button Index:', buttonIndex);
     console.log('Input Text:', inputText);
 
-    if (currentStep === null || currentStep === 'start') {
+    if (currentStep === 'start') {
       console.log('Processing START step');
       if (buttonIndex === 2) {
         if (inputText.trim()) {
@@ -31,7 +31,6 @@ export default function handler(req, res) {
         } else {
           console.log('No goal entered, showing error');
           error = 'no_goal';
-          currentStep = 'start';
         }
       }
     } else if (currentStep === '2') {
@@ -48,7 +47,6 @@ export default function handler(req, res) {
         } else {
           console.log('Invalid start date, showing error');
           error = 'invalid_start_date';
-          currentStep = '2';
         }
       }
     } else if (currentStep === '3') {
@@ -65,20 +63,9 @@ export default function handler(req, res) {
         } else {
           console.log('Invalid end date, showing error');
           error = 'invalid_end_date';
-          currentStep = '3';
         }
       }
-    } else if (currentStep === 'error') {
-      // Handle "Try Again" button click
-      currentStep = process.env.lastStep || 'start';
-      process.env.stepGoal = currentStep;
-      error = null;
     }
-  }
-
-  if (error) {
-    process.env.lastStep = currentStep;
-    currentStep = 'error';
   }
 
   console.log('Final Current Step:', currentStep);
@@ -97,16 +84,15 @@ function generateHtml(step, baseUrl, error) {
   let imageUrl, inputTextContent, button1Content, button2Content, inputValue;
 
   if (error) {
-    imageUrl = `${baseUrl}/api/og?error=${error}`;
+    imageUrl = `${baseUrl}/api/og?error=${error}&step=${step}`;
     button1Content = "Try Again";
     button2Content = "";
     inputTextContent = "";
     inputValue = "";
   } else {
-    // Use addGoal.png for all non-error states
     imageUrl = `${baseUrl}/addGoal.png`;
 
-    if (step === null || step === 'start') {
+    if (step === 'start') {
       inputTextContent = "Enter your goal";
       button1Content = "Home";
       button2Content = "Next";
