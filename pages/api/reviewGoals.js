@@ -39,12 +39,14 @@ export default async function handler(req, res) {
     const docRef = doc(db, "goals", fid);
     const docSnap = await getDoc(docRef);
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
+
     if (docSnap.exists()) {
       const data = docSnap.data();
       console.log('User goal data found:', data);
 
       // Pass the data to ogReview.js for OG image generation
-      const imageUrl = `${process.env.NEXT_PUBLIC_BASE_PATH}/api/ogReview?goal=${encodeURIComponent(data.goal)}&deadline=${encodeURIComponent(data.deadline)}&progress=${encodeURIComponent(data.progress)}`;
+      const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(data.goal)}&deadline=${encodeURIComponent(data.deadline)}&progress=${encodeURIComponent(data.progress)}`;
 
       console.log('Generated image URL:', imageUrl);
 
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${imageUrl}" />
             <meta property="fc:frame:button:1" content="Return Home" />
-            <meta property="fc:frame:post_url" content="${process.env.NEXT_PUBLIC_BASE_PATH}" />
+            <meta property="fc:frame:post_url" content="${baseUrl}/api" />
           </head>
         </html>
       `;
@@ -65,7 +67,7 @@ export default async function handler(req, res) {
 
     } else {
       console.log('No goal found for FID:', fid);
-      const imageUrl = `${process.env.NEXT_PUBLIC_BASE_PATH}/api/ogReview?error=no_goal`;
+      const imageUrl = `${baseUrl}/api/ogReview?error=no_goal`;
 
       console.log('Generated error image URL:', imageUrl);
 
@@ -77,7 +79,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${imageUrl}" />
             <meta property="fc:frame:button:1" content="Return Home" />
-            <meta property="fc:frame:post_url" content="${process.env.NEXT_PUBLIC_BASE_PATH}" />
+            <meta property="fc:frame:post_url" content="${baseUrl}/api" />
           </head>
         </html>
       `;
