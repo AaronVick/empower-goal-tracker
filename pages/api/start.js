@@ -7,9 +7,9 @@ export default function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
   console.log('Base URL:', baseUrl);
 
-  // Retrieve the current step from the environment variable, default to 'start' if null
-  let currentStep = process.env.stepGoal || 'start';
-  console.log('Current Step (from env):', currentStep);
+  // Retrieve the current step from the environment variable, default to null
+  let currentStep = process.env.stepGoal || null;
+  console.log('Initial Current Step:', currentStep);
 
   if (req.method === 'POST') {
     const { untrustedData } = req.body;
@@ -21,22 +21,18 @@ export default function handler(req, res) {
     console.log('Input Text:', inputText);
 
     // Handle step transitions
-    if (currentStep === 'start') {
+    if (currentStep === null || currentStep === 'start') {
       console.log('Processing START step');
-      if (buttonIndex === 1) {
-        console.log('Home button clicked, returning to Index');
-        return res.redirect(baseUrl);
-      } else if (buttonIndex === 2) {
-        if (inputText.trim()) {
-          console.log('Valid goal entered:', inputText);
-          process.env.userSetGoal = inputText;
-          process.env.stepGoal = '2';
-          currentStep = '2';
-          console.log('Moving to Step 2');
-        } else {
-          console.log('No valid goal entered, staying on START step');
-          process.env.stepGoal = 'start';
-        }
+      if (buttonIndex === 2 && inputText.trim()) {
+        console.log('Valid goal entered:', inputText);
+        process.env.userSetGoal = inputText;
+        process.env.stepGoal = '2';
+        currentStep = '2';
+        console.log('Moving to Step 2');
+      } else {
+        console.log('Staying on START step');
+        process.env.stepGoal = 'start';
+        currentStep = 'start';
       }
     } else if (currentStep === '2') {
       console.log('Processing Step 2');
@@ -44,16 +40,14 @@ export default function handler(req, res) {
         console.log('Previous button clicked, returning to START');
         process.env.stepGoal = 'start';
         currentStep = 'start';
-      } else if (buttonIndex === 2) {
-        if (isValidDateFormat(inputText)) {
-          console.log('Valid start date entered:', inputText);
-          process.env.userStartDate = inputText;
-          process.env.stepGoal = '3';
-          currentStep = '3';
-          console.log('Moving to Step 3');
-        } else {
-          console.log('Invalid date format, staying on Step 2');
-        }
+      } else if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+        console.log('Valid start date entered:', inputText);
+        process.env.userStartDate = inputText;
+        process.env.stepGoal = '3';
+        currentStep = '3';
+        console.log('Moving to Step 3');
+      } else {
+        console.log('Invalid date or no action, staying on Step 2');
       }
     } else if (currentStep === '3') {
       console.log('Processing Step 3');
@@ -61,23 +55,19 @@ export default function handler(req, res) {
         console.log('Previous button clicked, returning to Step 2');
         process.env.stepGoal = '2';
         currentStep = '2';
-      } else if (buttonIndex === 2) {
-        if (isValidDateFormat(inputText)) {
-          console.log('Valid end date entered:', inputText);
-          process.env.userEndDate = inputText;
-          console.log('Redirecting to results page');
-          return res.redirect(`${baseUrl}/api/results`);
-        } else {
-          console.log('Invalid date format, staying on Step 3');
-        }
+      } else if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+        console.log('Valid end date entered:', inputText);
+        process.env.userEndDate = inputText;
+        console.log('Goal setting complete, moving to results');
+        process.env.stepGoal = 'results';
+        currentStep = 'results';
+      } else {
+        console.log('Invalid date or no action, staying on Step 3');
       }
     }
-  } else if (req.method !== 'GET') {
-    console.log('Invalid HTTP method:', req.method);
-    return res.status(405).send('Method Not Allowed');
   }
 
-  console.log('Generating HTML for step:', currentStep);
+  console.log('Final Current Step:', currentStep);
   const html = generateHtml(currentStep, baseUrl);
   
   console.log('Sending HTML response');
@@ -90,7 +80,7 @@ function generateHtml(step, baseUrl) {
   
   let imageUrl, inputTextContent, button1Content, button2Content;
 
-  if (step === 'start') {
+  if (step === null || step === 'start') {
     imageUrl = `${baseUrl}/api/image?step=start`;
     inputTextContent = "Enter your goal";
     button1Content = "Home";
@@ -105,6 +95,11 @@ function generateHtml(step, baseUrl) {
     inputTextContent = "Enter end date (dd/mm/yyyy)";
     button1Content = "Previous";
     button2Content = "Set Goal";
+  } else if (step === 'results') {
+    imageUrl = `${baseUrl}/api/image?step=results`;
+    inputTextContent = "Goal set successfully!";
+    button1Content = "New Goal";
+    button2Content = "Share";
   }
 
   console.log('Image URL:', imageUrl);
