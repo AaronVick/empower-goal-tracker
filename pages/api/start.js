@@ -31,6 +31,7 @@ export default function handler(req, res) {
         } else {
           console.log('No goal entered, showing error');
           error = 'no_goal';
+          currentStep = 'start';
         }
       }
     } else if (currentStep === '2') {
@@ -47,6 +48,7 @@ export default function handler(req, res) {
         } else {
           console.log('Invalid start date, showing error');
           error = 'invalid_start_date';
+          currentStep = '2';
         }
       }
     } else if (currentStep === '3') {
@@ -63,9 +65,20 @@ export default function handler(req, res) {
         } else {
           console.log('Invalid end date, showing error');
           error = 'invalid_end_date';
+          currentStep = '3';
         }
       }
+    } else if (currentStep === 'error') {
+      // Handle "Try Again" button click
+      currentStep = process.env.lastStep || 'start';
+      process.env.stepGoal = currentStep;
+      error = null;
     }
+  }
+
+  if (error) {
+    process.env.lastStep = currentStep;
+    currentStep = 'error';
   }
 
   console.log('Final Current Step:', currentStep);
@@ -84,35 +97,36 @@ function generateHtml(step, baseUrl, error) {
   let imageUrl, inputTextContent, button1Content, button2Content, inputValue;
 
   if (error) {
-    imageUrl = `${baseUrl}/api/image?step=${step}&error=${error}`;
+    imageUrl = `${baseUrl}/api/og?error=${error}`;
     button1Content = "Try Again";
     button2Content = "";
     inputTextContent = "";
     inputValue = "";
-  } else if (step === null || step === 'start') {
-    imageUrl = `${baseUrl}/api/image?step=start`;
-    inputTextContent = "Enter your goal";
-    button1Content = "Home";
-    button2Content = "Next";
-    inputValue = process.env.userSetGoal || "";
-  } else if (step === '2') {
-    imageUrl = `${baseUrl}/api/image?step=step2`;
-    inputTextContent = "Enter start date (dd/mm/yyyy)";
-    button1Content = "Previous";
-    button2Content = "Next";
-    inputValue = process.env.userStartDate || "";
-  } else if (step === '3') {
-    imageUrl = `${baseUrl}/api/image?step=step3`;
-    inputTextContent = "Enter end date (dd/mm/yyyy)";
-    button1Content = "Previous";
-    button2Content = "Set Goal";
-    inputValue = process.env.userEndDate || "";
-  } else if (step === 'results') {
-    imageUrl = `${baseUrl}/api/image?step=results`;
-    inputTextContent = "Goal set successfully!";
-    button1Content = "New Goal";
-    button2Content = "Share";
-    inputValue = "";
+  } else {
+    // Use the same PNG for all non-error states
+    imageUrl = `${baseUrl}/addGoal.png`;
+    
+    if (step === null || step === 'start') {
+      inputTextContent = "Enter your goal";
+      button1Content = "Home";
+      button2Content = "Next";
+      inputValue = process.env.userSetGoal || "";
+    } else if (step === '2') {
+      inputTextContent = "Enter start date (dd/mm/yyyy)";
+      button1Content = "Previous";
+      button2Content = "Next";
+      inputValue = process.env.userStartDate || "";
+    } else if (step === '3') {
+      inputTextContent = "Enter end date (dd/mm/yyyy)";
+      button1Content = "Previous";
+      button2Content = "Set Goal";
+      inputValue = process.env.userEndDate || "";
+    } else if (step === 'results') {
+      inputTextContent = "Goal set successfully!";
+      button1Content = "New Goal";
+      button2Content = "Share";
+      inputValue = "";
+    }
   }
 
   console.log('Image URL:', imageUrl);

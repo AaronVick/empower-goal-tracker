@@ -6,7 +6,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "firebase-admin": "^11.8.0",
-    "@farcaster/core": "^0.11.1"
+    "@farcaster/core": "^0.11.1",
+    "@vercel/og": "latest"
   },
   "scripts": {
     "dev": "next dev",
