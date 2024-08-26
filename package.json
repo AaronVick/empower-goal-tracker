@@ -2,12 +2,13 @@
   "name": "empower-goal-tracker",
   "version": "1.0.0",
   "dependencies": {
+    "@farcaster/core": "^0.11.1",
+    "@vercel/og": "latest",
+    "firebase": "^10.13.0",
+    "firebase-admin": "^11.8.0",
     "next": "^14.2.6",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "firebase-admin": "^11.8.0",
-    "@farcaster/core": "^0.11.1",
-    "@vercel/og": "latest"
+    "react-dom": "^18.2.0"
   },
   "scripts": {
     "dev": "next dev",
