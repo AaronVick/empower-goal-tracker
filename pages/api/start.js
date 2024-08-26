@@ -1,119 +1,146 @@
 export default function handler(req, res) {
   console.log('Goal Tracker API accessed');
+  console.log('Request Method:', req.method);
+  console.log('Full Request Body:', JSON.stringify(req.body, null, 2));
+  console.log('Query Parameters:', JSON.stringify(req.query, null, 2));
+
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
+  console.log('Base URL:', baseUrl);
 
   // Retrieve the current step from the environment variable, default to 'start' if null
   let currentStep = process.env.stepGoal || 'start';
+  console.log('Current Step (from env):', currentStep);
 
-  // Initialize variables
-  let nextUrl = `${baseUrl}/api/start`; // Default to start
-  let imageUrl = `${baseUrl}/api/image?step=${currentStep}`;
-  let inputTextContent = '';
-  let inputText = '';
-
-  // Handle POST requests for transitions
   if (req.method === 'POST') {
-    const untrustedData = req.body.untrustedData || {};
-    inputText = untrustedData.inputText || '';
+    const { untrustedData } = req.body;
     const buttonIndex = parseInt(untrustedData.buttonIndex);
+    const inputText = untrustedData.inputText || '';
 
-    console.log('Current Step:', currentStep);
+    console.log('Untrusted Data:', JSON.stringify(untrustedData, null, 2));
     console.log('Button Index:', buttonIndex);
     console.log('Input Text:', inputText);
 
-    // Step handling logic
+    // Handle step transitions
     if (currentStep === 'start') {
-      if (buttonIndex === 2 && inputText) {
-        process.env.userSetGoal = inputText;  // Store the goal
-        process.env.stepGoal = '2';  // Move to step 2
-        currentStep = 'step2';
-      } else if (buttonIndex === 1) {
-        console.log('Returning to Index (Home)');
-        return res.redirect(`${baseUrl}`);
-      } else {
-        inputTextContent = 'Please enter your goal';
+      console.log('Processing START step');
+      if (buttonIndex === 1) {
+        console.log('Home button clicked, returning to Index');
+        return res.redirect(baseUrl);
+      } else if (buttonIndex === 2) {
+        if (inputText.trim()) {
+          console.log('Valid goal entered:', inputText);
+          process.env.userSetGoal = inputText;
+          process.env.stepGoal = '2';
+          currentStep = '2';
+          console.log('Moving to Step 2');
+        } else {
+          console.log('No valid goal entered, staying on START step');
+          process.env.stepGoal = 'start';
+        }
       }
     } else if (currentStep === '2') {
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        process.env.userStartDate = inputText;  // Store the start date
-        process.env.stepGoal = '3';  // Move to step 3
-        currentStep = 'step3';
-      } else if (buttonIndex === 1) {
-        console.log('Returning to Start (Goal Entry)');
+      console.log('Processing Step 2');
+      if (buttonIndex === 1) {
+        console.log('Previous button clicked, returning to START');
         process.env.stepGoal = 'start';
         currentStep = 'start';
-      } else {
-        inputTextContent = 'Please enter a valid start date (dd/mm/yyyy)';
+      } else if (buttonIndex === 2) {
+        if (isValidDateFormat(inputText)) {
+          console.log('Valid start date entered:', inputText);
+          process.env.userStartDate = inputText;
+          process.env.stepGoal = '3';
+          currentStep = '3';
+          console.log('Moving to Step 3');
+        } else {
+          console.log('Invalid date format, staying on Step 2');
+        }
       }
     } else if (currentStep === '3') {
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        process.env.userEndDate = inputText;  // Store the end date
-        return res.redirect(`${baseUrl}/api/results`);  // Move to results
-      } else if (buttonIndex === 1) {
-        console.log('Returning to Step 2 (Start Date Entry)');
+      console.log('Processing Step 3');
+      if (buttonIndex === 1) {
+        console.log('Previous button clicked, returning to Step 2');
         process.env.stepGoal = '2';
-        currentStep = 'step2';
-      } else {
-        inputTextContent = 'Please enter a valid end date (dd/mm/yyyy)';
+        currentStep = '2';
+      } else if (buttonIndex === 2) {
+        if (isValidDateFormat(inputText)) {
+          console.log('Valid end date entered:', inputText);
+          process.env.userEndDate = inputText;
+          console.log('Redirecting to results page');
+          return res.redirect(`${baseUrl}/api/results`);
+        } else {
+          console.log('Invalid date format, staying on Step 3');
+        }
       }
     }
   } else if (req.method !== 'GET') {
+    console.log('Invalid HTTP method:', req.method);
     return res.status(405).send('Method Not Allowed');
   }
 
-  // Set up meta tags for the current step
-  let metaTags = '';
-  if (currentStep === 'start' || currentStep === 'null') {
-    process.env.stepGoal = 'start';  // Ensure we start from the goal entry if no step is set
-    metaTags = `
-      <meta property="fc:frame:image" content="${baseUrl}/api/image?step=start" />
-      <meta property="fc:frame:input:text" content="Enter your goal" />
-      <meta property="fc:frame:button:1" content="Home" />
-      <meta property="fc:frame:button:2" content="Next" />
-      <meta property="fc:frame:post_url:1" content="${baseUrl}" />
-      <meta property="fc:frame:post_url:2" content="${baseUrl}/api/start" />
-    `;
-  } else if (currentStep === '2') {
-    metaTags = `
-      <meta property="fc:frame:image" content="${baseUrl}/api/image?step=step2" />
-      <meta property="fc:frame:input:text" content="Enter start date (dd/mm/yyyy)" />
-      <meta property="fc:frame:button:1" content="Home" />
-      <meta property="fc:frame:button:2" content="Next" />
-      <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
-      <meta property="fc:frame:post_url:2" content="${baseUrl}/api/start" />
-    `;
-  } else if (currentStep === '3') {
-    metaTags = `
-      <meta property="fc:frame:image" content="${baseUrl}/api/image?step=step3" />
-      <meta property="fc:frame:input:text" content="Enter end date (dd/mm/yyyy)" />
-      <meta property="fc:frame:button:1" content="Home" />
-      <meta property="fc:frame:button:2" content="Next" />
-      <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
-      <meta property="fc:frame:post_url:2" content="${baseUrl}/api/start" />
-    `;
+  console.log('Generating HTML for step:', currentStep);
+  const html = generateHtml(currentStep, baseUrl);
+  
+  console.log('Sending HTML response');
+  res.setHeader('Content-Type', 'text/html');
+  res.status(200).send(html);
+}
+
+function generateHtml(step, baseUrl) {
+  console.log('Generating HTML for step:', step);
+  
+  let imageUrl, inputTextContent, button1Content, button2Content;
+
+  if (step === 'start') {
+    imageUrl = `${baseUrl}/api/image?step=start`;
+    inputTextContent = "Enter your goal";
+    button1Content = "Home";
+    button2Content = "Next";
+  } else if (step === '2') {
+    imageUrl = `${baseUrl}/api/image?step=step2`;
+    inputTextContent = "Enter start date (dd/mm/yyyy)";
+    button1Content = "Previous";
+    button2Content = "Next";
+  } else if (step === '3') {
+    imageUrl = `${baseUrl}/api/image?step=step3`;
+    inputTextContent = "Enter end date (dd/mm/yyyy)";
+    button1Content = "Previous";
+    button2Content = "Set Goal";
   }
 
-  // Return the HTML with meta tags
+  console.log('Image URL:', imageUrl);
+  console.log('Input Text Content:', inputTextContent);
+  console.log('Button 1 Content:', button1Content);
+  console.log('Button 2 Content:', button2Content);
+
   const html = `
     <!DOCTYPE html>
     <html>
       <head>
         <meta property="fc:frame" content="vNext" />
-        ${metaTags}
+        <meta property="fc:frame:image" content="${imageUrl}" />
+        <meta property="fc:frame:input:text" content="${inputTextContent}" />
+        <meta property="fc:frame:button:1" content="${button1Content}" />
+        <meta property="fc:frame:button:2" content="${button2Content}" />
+        <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
       </head>
     </html>
   `;
 
-  res.setHeader('Content-Type', 'text/html');
-  res.status(200).send(html);
+  console.log('Generated HTML:', html);
+  return html;
 }
 
-// Function to validate the date format
 function isValidDateFormat(dateString) {
+  console.log('Validating date format:', dateString);
   const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-  if (!regex.test(dateString)) return false;
+  if (!regex.test(dateString)) {
+    console.log('Date format validation failed');
+    return false;
+  }
 
   const [day, month, year] = dateString.split('/');
   const date = new Date(year, month - 1, day);
-  return date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
+  const isValid = date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
+  console.log('Date validity:', isValid);
+  return isValid;
 }
