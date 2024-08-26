@@ -4,7 +4,7 @@ import { getFirestore, doc, getDoc } from "firebase/firestore";
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
   console.log('Request method:', req.method);
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Request body:', req.body);
 
   // Initialize Firebase
   const firebaseConfig = {
@@ -20,11 +20,9 @@ export default async function handler(req, res) {
 
   let fid;
   if (req.method === 'POST') {
-    const { untrustedData } = req.body;
-    fid = untrustedData?.fid;
+    fid = req.body?.untrustedData?.fid;
   } else {
-    const { searchParams } = new URL(req.url);
-    fid = searchParams.get('fid');
+    fid = req.query.fid;
   }
 
   console.log('FID:', fid);
@@ -83,7 +81,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Error fetching user goal" });
   }
 }
-
-export const config = {
-  runtime: 'edge',
-};
