@@ -73,7 +73,12 @@ export default function handler(req, res) {
         process.env.stepGoal = '3';
         currentStep = '3';
       } else if (buttonIndex === 2) {
-        res.redirect(303, `${baseUrl}/api/setGoal`);
+        // Update: Ensure POST request is made to `setGoal`
+        res.writeHead(303, {
+          'Location': `${baseUrl}/api/setGoal`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        });
+        res.end('method=POST');
         return;
       }
     }
@@ -107,19 +112,19 @@ function generateHtml(step, baseUrl, error) {
     inputValue = "";
   } else {
     if (step === 'start') {
-      imageUrl = `${baseUrl}/addGoal.png`;
+      imageUrl = `${baseUrl}/empower.png`;
       inputTextContent = "Enter your goal";
       button1Content = "Home";
       button2Content = "Next";
       inputValue = process.env.userSetGoal || "";
     } else if (step === '2') {
-      imageUrl = `${baseUrl}/addGoal.png`;
+      imageUrl = `${baseUrl}/empower.png`;
       inputTextContent = "Enter start date (dd/mm/yyyy)";
       button1Content = "Previous";
       button2Content = "Next";
       inputValue = process.env.userStartDate || "";
     } else if (step === '3') {
-      imageUrl = `${baseUrl}/addGoal.png`;
+      imageUrl = `${baseUrl}/empower.png`;
       inputTextContent = "Enter end date (dd/mm/yyyy)";
       button1Content = "Previous";
       button2Content = "Next";
