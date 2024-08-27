@@ -1,7 +1,11 @@
 import { ImageResponse } from '@vercel/og';
 
-export default function handler(req, res) {
-  const imageResponse = new ImageResponse(
+export const config = {
+  runtime: 'edge',
+};
+
+export default function handler() {
+  return new ImageResponse(
     (
       <div
         style={{
@@ -18,8 +22,8 @@ export default function handler(req, res) {
           flexDirection: 'column',
         }}
       >
-        <h1 style={{ marginBottom: '20px' }}>Goal Set Successfully!</h1>
-        <p style={{ fontSize: '40px' }}>Your goal has been saved.</p>
+        <h1>Goal has been set!</h1>
+        <p style={{ fontSize: '40px' }}>Your goal is now tracked.</p>
       </div>
     ),
     {
@@ -27,10 +31,4 @@ export default function handler(req, res) {
       height: 630,
     }
   );
-
-  return imageResponse;
 }
-
-export const config = {
-  runtime: 'edge',
-};

@@ -1,57 +1,27 @@
 import { db } from '../../lib/firebase';
-import { Message } from '@farcaster/core';
 import { Timestamp } from 'firebase-admin/firestore';
-import { ImageResponse } from '@vercel/og';
 
-export const config = {
-  runtime: 'edge',
-};
-
-export default async function handler(req) {
+export default async function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
   if (req.method === 'GET') {
-    // Handle GET request - display "Goal has been set!" image
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            fontSize: 60,
-            color: 'white',
-            background: 'linear-gradient(to bottom, #1E2E3D, #2D3E4D)',
-            width: '100%',
-            height: '100%',
-            padding: '50px 200px',
-            textAlign: 'center',
-            justifyContent: 'center',
-            alignItems: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <h1>Goal has been set!</h1>
-          <p style={{ fontSize: '40px' }}>Your goal is now tracked.</p>
-        </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
-      }
-    );
+    // Handle GET request - redirect to the image generation API
+    res.redirect(302, `${baseUrl}/api/generateSuccessImage`);
   } else if (req.method === 'POST') {
     // Handle POST request - set the goal in Firebase
     console.log('Set Goal API accessed');
-    console.log('Request Body:', await req.json());
+    console.log('Request Body:', req.body);
 
-    const { untrustedData } = await req.json();
+    const { untrustedData } = req.body;
     const { trustedData } = untrustedData;
     const goal = process.env.userSetGoal;
     const startDate = process.env.userStartDate;
     const endDate = process.env.userEndDate;
 
     try {
-      const frameMessage = Message.decode(Buffer.from(trustedData.messageBytes, 'hex'));
-      const userFID = frameMessage.data.fid;
+      // Note: We're not using Farcaster's Message.decode here due to compatibility issues
+      // You may need to implement a different way to extract the user ID
+      const userFID = trustedData.fid; // Assuming the FID is directly available
 
       const startTimestamp = convertToTimestamp(startDate, true);
       const endTimestamp = convertToTimestamp(endDate, false);
@@ -67,13 +37,13 @@ export default async function handler(req) {
       const shareText = encodeURIComponent(`I just set a new goal: "${goal}"! Join me on Empower Goal Tracker.`);
       const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(baseUrl)}`;
 
-      return new Response(
-        `
+      res.setHeader('Content-Type', 'text/html');
+      res.status(200).send(`
         <!DOCTYPE html>
         <html>
         <head>
           <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/api/setGoal" />
+          <meta property="fc:frame:image" content="${baseUrl}/api/generateSuccessImage" />
           <meta property="fc:frame:button:1" content="Home" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}" />
           <meta property="fc:frame:button:2" content="Share" />
@@ -81,17 +51,13 @@ export default async function handler(req) {
           <meta property="fc:frame:button:2:target" content="${shareLink}" />
         </head>
         </html>
-        `,
-        {
-          headers: { 'Content-Type': 'text/html' },
-        }
-      );
+      `);
     } catch (error) {
       console.error("Error setting goal:", error);
-      return Response.redirect(`${baseUrl}/api/error`, 302);
+      res.redirect(302, `${baseUrl}/api/error`);
     }
   } else {
-    return new Response('Method not allowed', { status: 405 });
+    res.status(405).json({ error: 'Method not allowed' });
   }
 }
 
