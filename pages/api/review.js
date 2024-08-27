@@ -1,28 +1,23 @@
 export default async function handler(req, res) {
   try {
-    // Access goal, startDate, and endDate from environment variables
     const goal = process.env.userSetGoal;
     const startDate = process.env.userStartDate;
     const endDate = process.env.userEndDate;
 
-    // Check if the required environment variables are present
     if (!goal || !startDate || !endDate) {
       return res.status(400).json({ error: "Missing required environment variables" });
     }
 
-    // Log the received environment variables
     console.log('Received goal from environment:', goal);
     console.log('Received start date from environment:', startDate);
     console.log('Received end date from environment:', endDate);
 
-    // Additional logic to generate the review based on the provided environment variables
     const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
     const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goal)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
 
     console.log('Generated image URL:', imageUrl);
 
-    // Return the frame with proper meta tags, including buttons for "Set Goal" and "Return Home"
     const html = `
       <!DOCTYPE html>
       <html>

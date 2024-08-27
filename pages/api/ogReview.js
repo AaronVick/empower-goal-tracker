@@ -1,17 +1,15 @@
 import { ImageResponse } from '@vercel/og';
+import { NextRequest } from 'next/server';
 
 export const config = {
   runtime: 'edge',
 };
 
-export default async function handler(req) {
+export default async function handler(req: NextRequest) {
   console.log('OG Review Image Generator accessed');
-  console.log('Request URL:', req.url);
 
   try {
     const { searchParams } = new URL(req.url);
-    console.log('Search params:', searchParams);
-
     const goal = searchParams.get('goal');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -24,11 +22,9 @@ export default async function handler(req) {
     if (!goal || !startDate || !endDate) {
       message = 'Missing required parameters. Please try again.';
       title = 'Error';
-      console.log('Missing parameters:', { goal, startDate, endDate });
     } else {
       message = `Goal: ${goal}\nStart Date: ${startDate}\nEnd Date: ${endDate}`;
       title = 'Your Goal';
-      console.log('Goal data received');
     }
 
     console.log('Generated message:', message);
@@ -57,10 +53,6 @@ export default async function handler(req) {
       {
         width: 1200,
         height: 630,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        },
       }
     );
 
@@ -70,10 +62,6 @@ export default async function handler(req) {
     console.error('Error generating image:', e);
     return new Response(`Failed to generate image: ${e.message}`, {
       status: 500,
-      headers: {
-        'Content-Type': 'text/plain',
-        'Access-Control-Allow-Origin': '*',
-      },
     });
   }
 }
