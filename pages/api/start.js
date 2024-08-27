@@ -73,12 +73,11 @@ export default function handler(req, res) {
         process.env.stepGoal = '3';
         currentStep = '3';
       } else if (buttonIndex === 2) {
-        // Ensure POST request is made to `setGoal`
-        res.writeHead(303, {
-          'Location': `${baseUrl}/api/setGoal`,
-          'Content-Type': 'application/x-www-form-urlencoded',
+        // Redirect to setGoal endpoint
+        res.writeHead(302, {
+          Location: `${baseUrl}/api/setGoal`,
         });
-        res.end('method=POST');
+        res.end();
         return;
       }
     }
@@ -158,6 +157,7 @@ function generateHtml(step, baseUrl, error) {
         <meta property="fc:frame:button:1" content="${button1Content}" />
         ${button2Content ? `<meta property="fc:frame:button:2" content="${button2Content}" />` : ''}
         <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
+        ${step === 'review' ? `<meta property="fc:frame:post_url:2" content="${baseUrl}/api/setGoal" />` : ''}
       </head>
     </html>
   `;
