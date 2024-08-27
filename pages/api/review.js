@@ -6,17 +6,19 @@ export const config = {
 
 export default async function handler(req) {
   try {
-    const goal = process.env.userSetGoal;
-    const startDate = process.env.userStartDate;
-    const endDate = process.env.userEndDate;
+    const { searchParams } = new URL(req.url);
+    const goal = searchParams.get('goal');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const isImageRequest = searchParams.get('image') === 'true';
+
+    console.log('Received goal:', goal);
+    console.log('Received start date:', startDate);
+    console.log('Received end date:', endDate);
 
     if (!goal || !startDate || !endDate) {
-      return new Response('Missing required environment variables', { status: 400 });
+      return new Response('Missing required parameters', { status: 400 });
     }
-
-    console.log('Received goal from environment:', goal);
-    console.log('Received start date from environment:', startDate);
-    console.log('Received end date from environment:', endDate);
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
@@ -51,28 +53,22 @@ export default async function handler(req) {
 
     console.log('Image generated successfully');
 
-    // Generate the HTML for the frame
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/api/review" />
-          <meta property="fc:frame:button:1" content="Return Home" />
-          <meta property="fc:frame:button:2" content="Set Goal" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/setGoal" />
-        </head>
-      </html>
-    `;
-
-    // Check if the request is for the image or the frame HTML
-    const { searchParams } = new URL(req.url);
-    const isImageRequest = searchParams.get('image') === 'true';
-
     if (isImageRequest) {
       return imageResponse;
     } else {
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta property="fc:frame" content="vNext" />
+            <meta property="fc:frame:image" content="${baseUrl}/api/review?image=true&goal=${encodeURIComponent(goal)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}" />
+            <meta property="fc:frame:button:1" content="Return Home" />
+            <meta property="fc:frame:button:2" content="Set Goal" />
+            <meta property="fc:frame:post_url:1" content="${baseUrl}/api" />
+            <meta property="fc:frame:post_url:2" content="${baseUrl}/api/setGoal" />
+          </head>
+        </html>
+      `;
       return new Response(html, {
         headers: { 'Content-Type': 'text/html' },
       });
