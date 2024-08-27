@@ -6,26 +6,29 @@ export const config = {
 
 export default async function handler(req) {
   console.log('OG Review Image Generator accessed');
+  console.log('Request URL:', req.url);
 
   try {
     const { searchParams } = new URL(req.url);
-    const goal = searchParams.get('goal');
-    const deadline = searchParams.get('deadline');
-    const progress = searchParams.get('progress');
-    const error = searchParams.get('error');
+    console.log('Search params:', searchParams);
 
-    console.log('Received parameters:', { goal, deadline, progress, error });
+    const goal = searchParams.get('goal');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    console.log('Received parameters:', { goal, startDate, endDate });
 
     let message;
-    if (error === 'no_goal') {
-      message = 'No goal found. Start by setting a goal!';
-      console.log('No goal error detected');
-    } else if (goal) {
-      message = `Goal: ${goal}\nDeadline: ${deadline}\nProgress: ${progress}%`;
-      console.log('Goal data received');
+    let title;
+
+    if (!goal || !startDate || !endDate) {
+      message = 'Missing required parameters. Please try again.';
+      title = 'Error';
+      console.log('Missing parameters:', { goal, startDate, endDate });
     } else {
-      message = 'An error occurred';
-      console.log('Unknown error occurred');
+      message = `Goal: ${goal}\nStart Date: ${startDate}\nEnd Date: ${endDate}`;
+      title = 'Your Goal';
+      console.log('Goal data received');
     }
 
     console.log('Generated message:', message);
@@ -47,13 +50,17 @@ export default async function handler(req) {
             flexDirection: 'column',
           }}
         >
-          <h1 style={{ marginBottom: '20px' }}>{error ? 'Error' : 'Your Goal'}</h1>
+          <h1 style={{ marginBottom: '20px' }}>{title}</h1>
           <p style={{ fontSize: '40px', whiteSpace: 'pre-wrap' }}>{message}</p>
         </div>
       ),
       {
         width: 1200,
         height: 630,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        },
       }
     );
 
@@ -61,6 +68,12 @@ export default async function handler(req) {
     return imageResponse;
   } catch (e) {
     console.error('Error generating image:', e);
-    return new Response(`Failed to generate image: ${e.message}`, { status: 500 });
+    return new Response(`Failed to generate image: ${e.message}`, {
+      status: 500,
+      headers: {
+        'Content-Type': 'text/plain',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   }
 }
