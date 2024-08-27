@@ -4,20 +4,27 @@ import { Timestamp } from 'firebase-admin/firestore';
 export default async function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
+  console.log('SetGoal handler accessed');
+  console.log('Request method:', req.method);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+
   if (req.method === 'GET') {
+    console.log('Redirecting to generateSuccessImage');
     res.redirect(302, `${baseUrl}/api/generateSuccessImage`);
   } else if (req.method === 'POST') {
-    console.log('Set Goal API accessed');
-    console.log('Request Body:', req.body);
-
+    console.log('Processing POST request');
     const { untrustedData } = req.body;
     const goal = process.env.userSetGoal;
     const startDate = process.env.userStartDate;
     const endDate = process.env.userEndDate;
 
+    console.log('Goal:', goal);
+    console.log('Start Date:', startDate);
+    console.log('End Date:', endDate);
+
     try {
-      // Extract the user ID from untrustedData instead of trustedData
       const userFID = untrustedData.fid;
+      console.log('User FID:', userFID);
 
       if (!userFID) {
         throw new Error('User FID not found in request data');
@@ -34,8 +41,7 @@ export default async function handler(req, res) {
         createdAt: Timestamp.now(),
       });
 
-      const shareText = encodeURIComponent(`I just set a new goal: "${goal}"! Join me on Empower Goal Tracker.`);
-      const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(baseUrl)}`;
+      console.log('Goal added to database');
 
       res.setHeader('Content-Type', 'text/html');
       res.status(200).send(`
@@ -46,9 +52,6 @@ export default async function handler(req, res) {
           <meta property="fc:frame:image" content="${baseUrl}/api/generateSuccessImage" />
           <meta property="fc:frame:button:1" content="Home" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}" />
-          <meta property="fc:frame:button:2" content="Share" />
-          <meta property="fc:frame:button:2:action" content="link" />
-          <meta property="fc:frame:button:2:target" content="${shareLink}" />
         </head>
         </html>
       `);
@@ -57,6 +60,7 @@ export default async function handler(req, res) {
       res.redirect(302, `${baseUrl}/api/error`);
     }
   } else {
+    console.log('Method not allowed');
     res.status(405).json({ error: 'Method not allowed' });
   }
 }
