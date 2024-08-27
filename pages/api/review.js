@@ -28,7 +28,7 @@ export default async function handler(req) {
         }}
       >
         <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Goal Review</h1>
-        <div style={{ fontSize: '36px', marginBottom: '30px' }}>
+        <div style={{ fontSize: '36px', marginBottom: '30px', maxWidth: '80%', wordWrap: 'break-word' }}>
           <strong>Goal:</strong> {goal}
         </div>
         <div style={{ fontSize: '28px', marginBottom: '10px' }}>

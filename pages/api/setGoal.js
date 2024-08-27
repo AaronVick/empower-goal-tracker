@@ -5,23 +5,23 @@ export default async function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
   if (req.method === 'GET') {
-    // Handle GET request - redirect to the image generation API
     res.redirect(302, `${baseUrl}/api/generateSuccessImage`);
   } else if (req.method === 'POST') {
-    // Handle POST request - set the goal in Firebase
     console.log('Set Goal API accessed');
     console.log('Request Body:', req.body);
 
     const { untrustedData } = req.body;
-    const { trustedData } = untrustedData;
     const goal = process.env.userSetGoal;
     const startDate = process.env.userStartDate;
     const endDate = process.env.userEndDate;
 
     try {
-      // Note: We're not using Farcaster's Message.decode here due to compatibility issues
-      // You may need to implement a different way to extract the user ID
-      const userFID = trustedData.fid; // Assuming the FID is directly available
+      // Extract the user ID from untrustedData instead of trustedData
+      const userFID = untrustedData.fid;
+
+      if (!userFID) {
+        throw new Error('User FID not found in request data');
+      }
 
       const startTimestamp = convertToTimestamp(startDate, true);
       const endTimestamp = convertToTimestamp(endDate, false);
