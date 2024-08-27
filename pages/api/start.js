@@ -73,7 +73,7 @@ export default function handler(req, res) {
         process.env.stepGoal = '3';
         currentStep = '3';
       } else if (buttonIndex === 2) {
-        // Update: Ensure POST request is made to `setGoal`
+        // Ensure POST request is made to `setGoal`
         res.writeHead(303, {
           'Location': `${baseUrl}/api/setGoal`,
           'Content-Type': 'application/x-www-form-urlencoded',
