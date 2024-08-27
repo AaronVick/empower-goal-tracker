@@ -15,16 +15,11 @@ export default async function handler(req) {
 
     console.log('Received parameters:', { goal, startDate, endDate });
 
-    let message;
-    let title;
-
     if (!goal || !startDate || !endDate) {
-      message = 'Missing required parameters. Please try again.';
-      title = 'Error';
-    } else {
-      message = `Goal: ${goal}\nStart Date: ${startDate}\nEnd Date: ${endDate}`;
-      title = 'Your Goal';
+      return new Response('Missing required parameters', { status: 400 });
     }
+
+    const message = `Goal: ${goal}\nStart Date: ${startDate}\nEnd Date: ${endDate}`;
 
     console.log('Generated message:', message);
 
@@ -45,7 +40,7 @@ export default async function handler(req) {
             flexDirection: 'column',
           }}
         >
-          <h1 style={{ marginBottom: '20px' }}>{title}</h1>
+          <h1 style={{ marginBottom: '20px' }}>Your Goal Review</h1>
           <p style={{ fontSize: '40px', whiteSpace: 'pre-wrap' }}>{message}</p>
         </div>
       ),
@@ -59,8 +54,6 @@ export default async function handler(req) {
     return imageResponse;
   } catch (e) {
     console.error('Error generating image:', e);
-    return new Response(`Failed to generate image: ${e.message}`, {
-      status: 500,
-    });
+    return new Response(`Failed to generate image: ${e.message}`, { status: 500 });
   }
 }
