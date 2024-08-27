@@ -5,13 +5,11 @@ export default function handler(req, res) {
     console.log('Review API accessed');
     console.log('Request Body:', req.body);
 
-    // Correctly accessing the inputText and state from untrustedData
-    const { inputText: endDate, state } = req.body.untrustedData;
-    console.log('End Date:', endDate);
-
-    const { goal, startDate } = JSON.parse(state || '{}');
+    const { state } = req.body.untrustedData;
+    const { goal, startDate, endDate } = JSON.parse(state || '{}');
     console.log('Goal:', goal);
     console.log('Start Date:', startDate);
+    console.log('End Date:', endDate);
 
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
     const fullBasePath = `https://empower-goal-tracker.vercel.app${basePath}`;
@@ -25,7 +23,7 @@ export default function handler(req, res) {
       <head>
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${ogImage}" />
-        <meta property="fc:frame:button:1" content="Edit" />
+        <meta property="fc:frame:button:1" content="Back" />
         <meta property="fc:frame:post_url:1" content="${fullBasePath}/api/start" />
         <meta property="fc:frame:button:2" content="Set Goal" />
         <meta property="fc:frame:post_url:2" content="${fullBasePath}/api/setGoal" />

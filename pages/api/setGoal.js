@@ -10,8 +10,7 @@ export default async function handler(req, res) {
 
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
     const fullBasePath = `https://empower-goal-tracker.vercel.app${basePath}`;
-    
-    // Correctly accessing trustedData and state from untrustedData
+
     const { trustedData, state } = req.body.untrustedData;
     console.log('Trusted Data:', trustedData);
     console.log('State:', state);
