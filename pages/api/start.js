@@ -130,7 +130,7 @@ function generateHtml(step, baseUrl, error) {
       button2Content = "Next";
       inputValue = process.env.userEndDate || "";
     } else if (step === 'review') {
-      imageUrl = `${baseUrl}/api/review?goal=${encodeURIComponent(process.env.userSetGoal)}&startDate=${encodeURIComponent(process.env.userStartDate)}&endDate=${encodeURIComponent(process.env.userEndDate)}`;
+      imageUrl = `${baseUrl}/api/review?image=true`;
       button1Content = "Back";
       button2Content = "Set Goal";
       inputTextContent = "";
