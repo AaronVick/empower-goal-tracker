@@ -8,10 +8,7 @@ export default async function handler(req, res) {
   console.log('Request method:', req.method);
   console.log('Request body:', JSON.stringify(req.body, null, 2));
 
-  if (req.method === 'GET') {
-    console.log('Redirecting to generateSuccessImage');
-    res.redirect(302, `${baseUrl}/api/generateSuccessImage`);
-  } else if (req.method === 'POST') {
+  if (req.method === 'POST') {
     console.log('Processing POST request');
     const { untrustedData } = req.body;
     const goal = process.env.userSetGoal;
@@ -49,7 +46,7 @@ export default async function handler(req, res) {
         <html>
         <head>
           <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/api/generateSuccessImage" />
+          <meta property="fc:frame:image" content="${baseUrl}/api/successImage" />
           <meta property="fc:frame:button:1" content="Home" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}" />
         </head>

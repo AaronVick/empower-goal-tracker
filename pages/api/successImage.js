@@ -9,21 +9,23 @@ export default function handler() {
     (
       <div
         style={{
-          fontSize: 60,
+          fontSize: 32,
           color: 'white',
-          background: 'linear-gradient(to bottom, #1E2E3D, #2D3E4D)',
+          background: 'linear-gradient(to bottom right, #1E2E3D, #2D3E4D)',
           width: '100%',
           height: '100%',
-          padding: '50px 200px',
-          textAlign: 'center',
-          justifyContent: 'center',
-          alignItems: 'center',
+          padding: '40px',
           display: 'flex',
           flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          textAlign: 'center',
         }}
       >
-        <h1>Goal has been set!</h1>
-        <p style={{ fontSize: '40px' }}>Your goal is now tracked.</p>
+        <h1 style={{ fontSize: '48px', marginBottom: '30px', color: '#4CAF50' }}>Goal Set Successfully!</h1>
+        <p style={{ fontSize: '36px', maxWidth: '80%', wordWrap: 'break-word' }}>
+          Your goal has been recorded and tracked.
+        </p>
       </div>
     ),
     {
