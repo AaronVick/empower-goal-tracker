@@ -21,11 +21,9 @@ export default function handler(req, res) {
     console.log('Input Text:', inputText);
 
     if (currentStep === 'error') {
-      // If we're coming from an error state, stepGoal will contain the step we need to return to
       currentStep = process.env.stepGoal;
       error = null;
     } else if (currentStep === 'start') {
-      console.log('Processing START step');
       if (buttonIndex === 2) {
         if (inputText.trim()) {
           console.log('Valid goal entered:', inputText);
@@ -35,12 +33,11 @@ export default function handler(req, res) {
         } else {
           console.log('No goal entered, showing error');
           error = 'no_goal';
-          process.env.stepGoal = 'start';  // Ensure we return to start after error
+          process.env.stepGoal = 'start';
         }
       }
     } else if (currentStep === '2') {
       if (buttonIndex === 1) {
-        console.log('Previous button clicked, returning to START');
         process.env.stepGoal = 'start';
         currentStep = 'start';
       } else if (buttonIndex === 2) {
@@ -52,25 +49,32 @@ export default function handler(req, res) {
         } else {
           console.log('Invalid start date, showing error');
           error = 'invalid_start_date';
-          process.env.stepGoal = '2';  // Ensure we return to step 2 after error
+          process.env.stepGoal = '2';
         }
       }
     } else if (currentStep === '3') {
       if (buttonIndex === 1) {
-        console.log('Previous button clicked, returning to Step 2');
         process.env.stepGoal = '2';
         currentStep = '2';
       } else if (buttonIndex === 2) {
         if (isValidDateFormat(inputText)) {
           console.log('Valid end date entered:', inputText);
           process.env.userEndDate = inputText;
-          process.env.stepGoal = 'results';
-          currentStep = 'results';
+          process.env.stepGoal = 'review';
+          currentStep = 'review';
         } else {
           console.log('Invalid end date, showing error');
           error = 'invalid_end_date';
-          process.env.stepGoal = '3';  // Ensure we return to step 3 after error
+          process.env.stepGoal = '3';
         }
+      }
+    } else if (currentStep === 'review') {
+      if (buttonIndex === 1) {
+        process.env.stepGoal = '3';
+        currentStep = '3';
+      } else if (buttonIndex === 2) {
+        res.redirect(303, `${baseUrl}/api/setGoal`);
+        return;
       }
     }
   }
@@ -102,27 +106,29 @@ function generateHtml(step, baseUrl, error) {
     inputTextContent = "";
     inputValue = "";
   } else {
-    imageUrl = `${baseUrl}/addGoal.png`;
-
     if (step === 'start') {
+      imageUrl = `${baseUrl}/addGoal.png`;
       inputTextContent = "Enter your goal";
       button1Content = "Home";
       button2Content = "Next";
       inputValue = process.env.userSetGoal || "";
     } else if (step === '2') {
+      imageUrl = `${baseUrl}/addGoal.png`;
       inputTextContent = "Enter start date (dd/mm/yyyy)";
       button1Content = "Previous";
       button2Content = "Next";
       inputValue = process.env.userStartDate || "";
     } else if (step === '3') {
+      imageUrl = `${baseUrl}/addGoal.png`;
       inputTextContent = "Enter end date (dd/mm/yyyy)";
       button1Content = "Previous";
-      button2Content = "Set Goal";
+      button2Content = "Next";
       inputValue = process.env.userEndDate || "";
-    } else if (step === 'results') {
-      inputTextContent = "Goal set successfully!";
-      button1Content = "New Goal";
-      button2Content = "Share";
+    } else if (step === 'review') {
+      imageUrl = `${baseUrl}/api/review?goal=${encodeURIComponent(process.env.userSetGoal)}&startDate=${encodeURIComponent(process.env.userStartDate)}&endDate=${encodeURIComponent(process.env.userEndDate)}`;
+      button1Content = "Back";
+      button2Content = "Set Goal";
+      inputTextContent = "";
       inputValue = "";
     }
   }

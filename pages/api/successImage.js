@@ -1,8 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 
 export default function handler(req, res) {
-  const { goal, startDate, endDate } = req.query;
-
   const imageResponse = new ImageResponse(
     (
       <div
@@ -20,10 +18,8 @@ export default function handler(req, res) {
           flexDirection: 'column',
         }}
       >
-        <h1 style={{ marginBottom: '20px' }}>Review Your Goal</h1>
-        <p style={{ fontSize: '40px' }}>Goal: {goal}</p>
-        <p style={{ fontSize: '30px' }}>Start Date: {startDate}</p>
-        <p style={{ fontSize: '30px' }}>End Date: {endDate}</p>
+        <h1 style={{ marginBottom: '20px' }}>Goal Set Successfully!</h1>
+        <p style={{ fontSize: '40px' }}>Your goal has been saved.</p>
       </div>
     ),
     {
