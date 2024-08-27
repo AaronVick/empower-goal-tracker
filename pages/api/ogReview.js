@@ -13,15 +13,13 @@ export default async function handler(req) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    console.log('Received parameters:', { goal, startDate, endDate });
+    console.log('Goal:', goal);
+    console.log('Start Date:', startDate);
+    console.log('End Date:', endDate);
 
     if (!goal || !startDate || !endDate) {
       return new Response('Missing required parameters', { status: 400 });
     }
-
-    const message = `Goal: ${goal}\nStart Date: ${startDate}\nEnd Date: ${endDate}`;
-
-    console.log('Generated message:', message);
 
     const imageResponse = new ImageResponse(
       (
@@ -40,8 +38,10 @@ export default async function handler(req) {
             flexDirection: 'column',
           }}
         >
-          <h1 style={{ marginBottom: '20px' }}>Your Goal Review</h1>
-          <p style={{ fontSize: '40px', whiteSpace: 'pre-wrap' }}>{message}</p>
+          <h1>Your Goal Review</h1>
+          <p style={{ fontSize: '40px' }}>Goal: {goal}</p>
+          <p style={{ fontSize: '40px' }}>Start Date: {startDate}</p>
+          <p style={{ fontSize: '40px' }}>End Date: {endDate}</p>
         </div>
       ),
       {
