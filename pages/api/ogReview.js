@@ -25,23 +25,23 @@ export default async function handler(req) {
       (
         <div
           style={{
-            fontSize: 60,
+            fontSize: 32,
             color: 'white',
             background: 'linear-gradient(to bottom, #1E2E3D, #2D3E4D)',
             width: '100%',
             height: '100%',
-            padding: '50px 200px',
-            textAlign: 'center',
-            justifyContent: 'center',
-            alignItems: 'center',
+            padding: '40px',
             display: 'flex',
             flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            textAlign: 'center',
           }}
         >
-          <h1>Your Goal Review</h1>
-          <p style={{ fontSize: '40px' }}>Goal: {goal}</p>
-          <p style={{ fontSize: '40px' }}>Start Date: {startDate}</p>
-          <p style={{ fontSize: '40px' }}>End Date: {endDate}</p>
+          <h1 style={{ fontSize: '48px', marginBottom: '30px' }}>Your Goal Review</h1>
+          <p style={{ fontSize: '36px', marginBottom: '20px' }}>Goal: {decodeURIComponent(goal)}</p>
+          <p style={{ fontSize: '24px', marginBottom: '10px' }}>Start Date: {decodeURIComponent(startDate)}</p>
+          <p style={{ fontSize: '24px' }}>End Date: {decodeURIComponent(endDate)}</p>
         </div>
       ),
       {

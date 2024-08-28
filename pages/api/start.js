@@ -132,8 +132,8 @@ function generateHtml(step, baseUrl, error) {
       const goal = encodeURIComponent(process.env.userSetGoal || '');
       const startDate = encodeURIComponent(process.env.userStartDate || '');
       const endDate = encodeURIComponent(process.env.userEndDate || '');
-      const timestamp = Date.now(); // Add this line
-      imageUrl = `${baseUrl}/api/review?image=true&goal=${goal}&startDate=${startDate}&endDate=${endDate}&t=${timestamp}`; // Add &t=${timestamp} here
+      const timestamp = Date.now();
+      imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}&t=${timestamp}`;
       button1Content = "Back";
       button2Content = "Set Goal";
       inputTextContent = "";
