@@ -5,36 +5,7 @@ export default async function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
   const { id: goalId } = req.query;
 
-  if (req.method === 'GET') {
-    try {
-      const goalDoc = await db.collection('goals').doc(goalId).get();
-      if (!goalDoc.exists) {
-        return res.status(404).json({ error: 'Goal not found' });
-      }
-
-      // Use encodeURIComponent to ensure proper encoding
-      const encodedGoalId = encodeURIComponent(goalId);
-      const encodedBaseUrl = encodeURIComponent(baseUrl);
-
-      res.setHeader('Content-Type', 'text/html');
-      res.status(200).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/api/ogGoalShare?id=${encodedGoalId}" />
-          <meta property="fc:frame:button:1" content="Start Your Goal" />
-          <meta property="fc:frame:post_url:1" content="${encodedBaseUrl}" />
-          <meta property="fc:frame:button:2" content="Support Me" />
-          <meta property="fc:frame:post_url:2" content="${encodedBaseUrl}/api/goalShare?id=${encodedGoalId}" />
-        </head>
-        </html>
-      `);
-    } catch (error) {
-      console.error("Error fetching goal:", error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  } else if (req.method === 'POST') {
+  if (req.method === 'POST') {
     try {
       const { untrustedData } = req.body;
       const supporterId = untrustedData.fid;
@@ -56,15 +27,18 @@ export default async function handler(req, res) {
         supported_at: Timestamp.now(),
       });
 
+      const imageUrl = `${baseUrl}/api/ogSupportConfirmation`;
+
       res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(200).send(`
         <!DOCTYPE html>
         <html>
         <head>
           <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${encodedBaseUrl}/api/ogSupportConfirmation" />
+          <meta property="fc:frame:image" content="${imageUrl}" />
           <meta property="fc:frame:button:1" content="Back to Goal" />
-          <meta property="fc:frame:post_url:1" content="${encodedBaseUrl}/api/goalShare?id=${encodedGoalId}" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
         </head>
         </html>
       `);
@@ -72,7 +46,35 @@ export default async function handler(req, res) {
       console.error("Error supporting goal:", error);
       res.status(500).json({ error: 'Internal Server Error' });
     }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (req.method === 'GET') {
+    try {
+      const goalDoc = await db.collection('goals').doc(goalId).get();
+      if (!goalDoc.exists) {
+        return res.status(404).json({ error: 'Goal not found' });
+      }
+
+      const imageUrl = `${baseUrl}/api/ogGoalShare?id=${encodeURIComponent(goalId)}`;
+
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${imageUrl}" />
+          <meta property="fc:frame:button:1" content="Start Your Goal" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}" />
+          <meta property="fc:frame:button:2" content="Support Me" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
+        </head>
+        </html>
+      `);
+    } catch (error) {
+      console.error("Error fetching goal:", error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 }
