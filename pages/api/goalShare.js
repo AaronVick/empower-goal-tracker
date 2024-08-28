@@ -12,14 +12,13 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       console.log('Fetching goal data');
-      const response = await fetch(`${baseUrl}/api/ogGoalShare?id=${encodeURIComponent(goalId)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch goal data');
+      const goalDoc = await db.collection('goals').doc(goalId).get();
+      if (!goalDoc.exists) {
+        return res.status(404).json({ error: 'Goal not found' });
       }
-      const goalData = await response.json();
-      console.log('Goal data:', goalData);
+      const goalData = goalDoc.data();
 
-      const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate)}&endDate=${encodeURIComponent(goalData.endDate)}&fid=${encodeURIComponent(goalData.fid)}`;
+      const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&fid=${encodeURIComponent(goalData.user_id)}`;
 
       console.log('Generated image URL:', imageUrl);
 
@@ -31,10 +30,13 @@ export default async function handler(req, res) {
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${imageUrl}" />
           <meta property="fc:frame:button:1" content="Start Your Goal" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
           <meta property="fc:frame:button:2" content="Support Me" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
         </head>
+        <body>
+          <h1>${goalData.goal}</h1>
+        </body>
         </html>
       `);
     } catch (error) {
