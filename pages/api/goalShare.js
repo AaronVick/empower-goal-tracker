@@ -11,7 +11,6 @@ export default async function handler(req, res) {
       if (!goalDoc.exists) {
         return res.status(404).json({ error: 'Goal not found' });
       }
-      const goalData = goalDoc.data();
 
       res.setHeader('Content-Type', 'text/html');
       res.status(200).send(`
