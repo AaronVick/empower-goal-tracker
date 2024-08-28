@@ -9,16 +9,23 @@ export default async function handler(req, res) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
-  if (req.method !== 'POST') {
+  let fid, buttonIndex, currentIndex;
+
+  if (req.method === 'GET') {
+    fid = req.query.fid;
+    currentIndex = 0; // Start with the first goal for GET requests
+  } else if (req.method === 'POST') {
+    const { untrustedData } = req.body;
+    fid = untrustedData.fid;
+    buttonIndex = parseInt(untrustedData.buttonIndex || '0');
+    currentIndex = parseInt(untrustedData.state || '0');
+  } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { untrustedData } = req.body;
-  const fid = untrustedData.fid;
-  const buttonIndex = parseInt(untrustedData.buttonIndex || '0');
-
   console.log('FID:', fid);
   console.log('Button Index:', buttonIndex);
+  console.log('Current Index:', currentIndex);
 
   if (!fid) {
     console.log('No FID provided');
@@ -34,19 +41,9 @@ export default async function handler(req, res) {
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
-    // Try querying with both number and string versions of FID
-    const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
-    const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
+    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
 
-    console.log('Query completed (number). Empty?', goalsSnapshotNum.empty, 'Size:', goalsSnapshotNum.size);
-    console.log('Query completed (string). Empty?', goalsSnapshotStr.empty, 'Size:', goalsSnapshotStr.size);
-
-    let goalsSnapshot = goalsSnapshotNum.empty ? goalsSnapshotStr : goalsSnapshotNum;
-
-    // Log each document for debugging
-    goalsSnapshot.forEach((doc) => {
-      console.log('Document ID:', doc.id, 'Data:', JSON.stringify(doc.data()));
-    });
+    console.log('Query completed. Empty?', goalsSnapshot.empty, 'Size:', goalsSnapshot.size);
 
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
@@ -71,13 +68,12 @@ export default async function handler(req, res) {
     console.log(`Found ${goals.length} goals for FID:`, fid);
     const totalGoals = goals.length;
 
-    let currentIndex = 0;
     if (buttonIndex === 1) {
       // Previous button
-      currentIndex = (totalGoals - 1) % totalGoals;
+      currentIndex = (currentIndex - 1 + totalGoals) % totalGoals;
     } else if (buttonIndex === 2) {
       // Next button
-      currentIndex = 1 % totalGoals;
+      currentIndex = (currentIndex + 1) % totalGoals;
     }
 
     const goalData = goals[currentIndex];
@@ -99,6 +95,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:state" content="${currentIndex}" />
         </head>
       </html>
     `;
