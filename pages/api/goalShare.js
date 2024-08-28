@@ -2,7 +2,7 @@ import { db } from '../../lib/firebase';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export default async function handler(req, res) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
+  const baseUrl = encodeURIComponent(process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app');
   const { id: goalId } = req.query;
 
   if (req.method === 'GET') {
@@ -18,11 +18,11 @@ export default async function handler(req, res) {
         <html>
         <head>
           <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/api/ogGoalShare?id=${goalId}" />
+          <meta property="fc:frame:image" content="${baseUrl}/api/ogGoalShare?id=${encodeURIComponent(goalId)}" />
           <meta property="fc:frame:button:1" content="Start Your Goal" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}" />
           <meta property="fc:frame:button:2" content="Support Me" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${goalId}" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
         </head>
         </html>
       `);
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/ogSupportConfirmation" />
           <meta property="fc:frame:button:1" content="Back to Goal" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/goalShare?id=${goalId}" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
         </head>
         </html>
       `);
