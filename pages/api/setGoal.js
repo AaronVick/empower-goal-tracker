@@ -23,6 +23,12 @@ export default async function handler(req, res) {
       const startTimestamp = convertToTimestamp(startDate, true);
       const endTimestamp = convertToTimestamp(endDate, false);
 
+      console.log('Attempting to add goal to Firebase with the following details:');
+      console.log(`Goal: ${goal}`);
+      console.log(`Start Date: ${startDate} (${startTimestamp.toDate()})`);
+      console.log(`End Date: ${endDate} (${endTimestamp.toDate()})`);
+      console.log(`User FID: ${userFID}`);
+
       const goalRef = await db.collection('goals').add({
         user_id: userFID,
         goal,
@@ -32,6 +38,8 @@ export default async function handler(req, res) {
       });
 
       const goalId = goalRef.id;
+      console.log(`Goal successfully added with ID: ${goalId}`);
+
       const shareText = encodeURIComponent(`I set a new goal: "${goal}"! Support me on my journey!\n\nFrame by @aaronv\n\n`);
       const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
 
