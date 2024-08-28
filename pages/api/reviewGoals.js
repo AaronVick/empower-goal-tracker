@@ -1,5 +1,4 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { db } from '../../lib/firebase';
 
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
@@ -7,87 +6,80 @@ export default async function handler(req, res) {
   console.log('Request body:', req.body);
   console.log('Request query:', req.query);
 
-  // Initialize Firebase
-  const firebaseConfig = {
-    type: process.env.FIREBASE_TYPE,
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  };
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  let fid;
+  let fid, currentIndex;
   if (req.method === 'POST') {
     fid = req.body?.untrustedData?.fid;
+    currentIndex = parseInt(req.body?.untrustedData?.inputText || '0');
   } else {
     fid = req.query.fid;
+    currentIndex = parseInt(req.query.index || '0');
   }
 
   console.log('FID:', fid);
+  console.log('Current Index:', currentIndex);
 
   if (!fid) {
     console.log('No FID provided');
     return res.status(400).json({ error: "FID is required" });
   }
 
-  // Fetch user goals from Firestore
   try {
-    console.log('Attempting to fetch goal for FID:', fid);
-    const docRef = doc(db, "goals", fid);
-    const docSnap = await getDoc(docRef);
+    console.log('Attempting to fetch goals for FID:', fid);
+    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      console.log('User goal data found:', data);
-
-      // Pass the data to ogReview.js for OG image generation
-      const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(data.goal)}&deadline=${encodeURIComponent(data.deadline)}&progress=${encodeURIComponent(data.progress)}`;
-
-      console.log('Generated image URL:', imageUrl);
-
-      // Return the frame with proper meta tags
-      const html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta property="fc:frame" content="vNext" />
-            <meta property="fc:frame:image" content="${imageUrl}" />
-            <meta property="fc:frame:button:1" content="Return Home" />
-            <meta property="fc:frame:post_url" content="${baseUrl}/api" />
-          </head>
-        </html>
-      `;
-      console.log('Sending HTML response for existing goal');
-      return res.setHeader('Content-Type', 'text/html').status(200).send(html);
-
-    } else {
-      console.log('No goal found for FID:', fid);
+    if (goalsSnapshot.empty) {
+      console.log('No goals found for FID:', fid);
       const imageUrl = `${baseUrl}/api/ogReview?error=no_goal`;
 
-      console.log('Generated error image URL:', imageUrl);
-
-      // Return the frame with proper meta tags
       const html = `
         <!DOCTYPE html>
         <html>
           <head>
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${imageUrl}" />
-            <meta property="fc:frame:button:1" content="Return Home" />
-            <meta property="fc:frame:post_url" content="${baseUrl}/api" />
+            <meta property="fc:frame:button:1" content="Set a Goal" />
+            <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
           </head>
         </html>
       `;
-      console.log('Sending HTML response for no goal');
+      console.log('Sending HTML response for no goals');
       return res.setHeader('Content-Type', 'text/html').status(200).send(html);
     }
+
+    const goals = goalsSnapshot.docs.map(doc => doc.data());
+    const totalGoals = goals.length;
+    currentIndex = (currentIndex + totalGoals) % totalGoals; // Ensure index is within bounds
+
+    const goalData = goals[currentIndex];
+    console.log('Current goal data:', goalData);
+
+    const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&index=${currentIndex + 1}&total=${totalGoals}`;
+
+    console.log('Generated image URL:', imageUrl);
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${imageUrl}" />
+          <meta property="fc:frame:button:1" content="Previous Goal" />
+          <meta property="fc:frame:button:2" content="Next Goal" />
+          <meta property="fc:frame:button:3" content="Set New Goal" />
+          <meta property="fc:frame:input:text" content="${currentIndex}" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url:3" content="${baseUrl}/api/start" />
+        </head>
+      </html>
+    `;
+    console.log('Sending HTML response for existing goals');
+    return res.setHeader('Content-Type', 'text/html').status(200).send(html);
+
   } catch (error) {
-    console.error('Error fetching user goal:', error);
-    return res.status(500).json({ error: "Error fetching user goal" });
+    console.error('Error fetching user goals:', error);
+    return res.status(500).json({ error: "Error fetching user goals" });
   }
 }

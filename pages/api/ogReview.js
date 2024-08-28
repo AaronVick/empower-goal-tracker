@@ -12,10 +12,14 @@ export default async function handler(req) {
     const goal = searchParams.get('goal');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const index = searchParams.get('index');
+    const total = searchParams.get('total');
 
     console.log('Goal:', goal);
     console.log('Start Date:', startDate);
     console.log('End Date:', endDate);
+    console.log('Index:', index);
+    console.log('Total:', total);
 
     if (!goal || !startDate || !endDate) {
       return new Response('Missing required parameters', { status: 400 });
@@ -39,6 +43,7 @@ export default async function handler(req) {
           }}
         >
           <h1 style={{ fontSize: '48px', marginBottom: '30px' }}>Your Goal Review</h1>
+          <p style={{ fontSize: '24px', marginBottom: '20px' }}>Goal {index} of {total}</p>
           <p style={{ fontSize: '36px', marginBottom: '20px' }}>Goal: {decodeURIComponent(goal)}</p>
           <p style={{ fontSize: '24px', marginBottom: '10px' }}>Start Date: {decodeURIComponent(startDate)}</p>
           <p style={{ fontSize: '24px' }}>End Date: {decodeURIComponent(endDate)}</p>
