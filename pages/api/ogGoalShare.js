@@ -1,4 +1,5 @@
 import { db } from '../../lib/firebase';
+import { ImageResponse } from '@vercel/og';
 
 export default async function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
@@ -12,60 +13,39 @@ export default async function handler(req, res) {
       }
       const goalData = goalDoc.data();
 
-      res.setHeader('Content-Type', 'text/html');
-      res.status(200).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/api/generateGoalImage?id=${goalId}" />
-          <meta property="fc:frame:button:1" content="Start Your Goal" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}" />
-          <meta property="fc:frame:button:2" content="Support Me" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/ogGoalShare?id=${goalId}" />
-        </head>
-        </html>
-      `);
+      const imageResponse = new ImageResponse(
+        (
+          <div
+            style={{
+              fontSize: 32,
+              color: 'white',
+              background: 'linear-gradient(to bottom right, #1E2E3D, #2D3E4D)',
+              width: '100%',
+              height: '100%',
+              padding: '40px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+            }}
+          >
+            <h1 style={{ fontSize: '48px', marginBottom: '30px', color: '#4CAF50' }}>Goal: {goalData.goal}</h1>
+            <p style={{ fontSize: '24px', marginBottom: '20px' }}>Start Date: {goalData.startDate.toDate().toLocaleDateString()}</p>
+            <p style={{ fontSize: '24px', marginBottom: '40px' }}>End Date: {goalData.endDate.toDate().toLocaleDateString()}</p>
+            <p style={{ fontSize: '28px', color: '#FFD700' }}>Support this goal or start your own!</p>
+          </div>
+        ),
+        {
+          width: 1200,
+          height: 630,
+        }
+      );
+
+      res.setHeader('Content-Type', 'image/png');
+      res.status(200).send(imageResponse);
     } catch (error) {
       console.error("Error fetching goal:", error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  } else if (req.method === 'POST') {
-    try {
-      const { untrustedData } = req.body;
-      const supporterId = untrustedData.fid;
-
-      const goalRef = db.collection('goals').doc(goalId);
-      const supporterRef = goalRef.collection('supporters').doc(supporterId.toString());
-
-      const supporterDoc = await supporterRef.get();
-      if (supporterDoc.exists) {
-        const lastSupported = supporterDoc.data().supported_at.toDate();
-        const now = new Date();
-        if (lastSupported.toDateString() === now.toDateString()) {
-          return res.status(400).json({ message: 'You have already supported this goal today' });
-        }
-      }
-
-      await supporterRef.set({
-        supporter_id: supporterId,
-        supported_at: new Date(),
-      });
-
-      res.setHeader('Content-Type', 'text/html');
-      res.status(200).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/api/generateSupportImage" />
-          <meta property="fc:frame:button:1" content="Back to Goal" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/ogGoalShare?id=${goalId}" />
-        </head>
-        </html>
-      `);
-    } catch (error) {
-      console.error("Error supporting goal:", error);
       res.status(500).json({ error: 'Internal Server Error' });
     }
   } else {
