@@ -14,7 +14,8 @@ export default async function handler(req, res) {
       res.status(200).json({
         goal: goalData.goal,
         startDate: goalData.startDate.toDate().toLocaleDateString(),
-        endDate: goalData.endDate.toDate().toLocaleDateString()
+        endDate: goalData.endDate.toDate().toLocaleDateString(),
+        fid: goalData.user_id
       });
     } catch (error) {
       console.error("Error fetching goal:", error);
