@@ -30,24 +30,24 @@ export default async function handler(req, res) {
 
   // Handle "Set New Goal" button click
   if (buttonIndex === 3) {
-    console.log('Set New Goal button clicked');
-    return res.redirect(307, `${baseUrl}/api/start`);
+    console.log('Home button clicked');
+    return res.redirect(307, `${baseUrl}`);
   }
 
   try {
     console.log('Attempting to fetch goals for FID:', fid);
-    
+
     // Log the query we're about to perform
-    console.log('Query:', `goals.where("user_id", "==", "${fid}")`);
-    
+    console.log('Query:', `goals.where("user_id", "==", ${fid})`);
+
     const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
-    
+
     console.log('Query completed. Empty?', goalsSnapshot.empty);
     console.log('Number of documents:', goalsSnapshot.size);
 
     // Log each document for debugging
     goalsSnapshot.forEach((doc) => {
-      console.log('Document ID:', doc.id, 'Data:', doc.data());
+      console.log('Document ID:', doc.id, 'Data:', JSON.stringify(doc.data()));
     });
 
     if (goalsSnapshot.empty) {
@@ -82,14 +82,9 @@ export default async function handler(req, res) {
     }
 
     const goalData = goals[currentIndex];
-    console.log('Current goal data:', goalData);
+    console.log('Current goal data:', JSON.stringify(goalData));
 
-    const imageUrl = createReviewOGImage(
-      goalData.goal,
-      goalData.startDate.toDate().toLocaleDateString(),
-      goalData.endDate.toDate().toLocaleDateString(),
-      `Goal ${currentIndex + 1} of ${totalGoals}`
-    );
+    const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&index=${currentIndex + 1}&total=${totalGoals}`;
 
     console.log('Generated image URL:', imageUrl);
 
@@ -104,7 +99,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:3" content="Home" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
-          <meta property="fc:frame:post_url:3" content="${baseUrl}" />
+          <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:input:text" content="${currentIndex}" />
         </head>
       </html>
