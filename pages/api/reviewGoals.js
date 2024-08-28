@@ -9,21 +9,15 @@ export default async function handler(req, res) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
-  let fid, currentIndex, buttonIndex;
-  if (req.method === 'POST') {
-    const { untrustedData } = req.body;
-    fid = untrustedData.fid;
-    currentIndex = parseInt(untrustedData.inputText || '0');
-    buttonIndex = parseInt(untrustedData.buttonIndex || '0');
-  } else if (req.method === 'GET') {
-    fid = req.query.fid;
-    currentIndex = parseInt(req.query.index || '0');
-  } else {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { untrustedData } = req.body;
+  const fid = untrustedData.fid;
+  const buttonIndex = parseInt(untrustedData.buttonIndex || '0');
+
   console.log('FID:', fid);
-  console.log('Current Index:', currentIndex);
   console.log('Button Index:', buttonIndex);
 
   if (!fid) {
@@ -77,12 +71,13 @@ export default async function handler(req, res) {
     console.log(`Found ${goals.length} goals for FID:`, fid);
     const totalGoals = goals.length;
 
+    let currentIndex = 0;
     if (buttonIndex === 1) {
       // Previous button
-      currentIndex = (currentIndex - 1 + totalGoals) % totalGoals;
+      currentIndex = (totalGoals - 1) % totalGoals;
     } else if (buttonIndex === 2) {
       // Next button
-      currentIndex = (currentIndex + 1) % totalGoals;
+      currentIndex = 1 % totalGoals;
     }
 
     const goalData = goals[currentIndex];
@@ -104,7 +99,6 @@ export default async function handler(req, res) {
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
-          <meta property="fc:frame:input:text" content="${currentIndex}" />
         </head>
       </html>
     `;
