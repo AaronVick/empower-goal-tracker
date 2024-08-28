@@ -5,10 +5,15 @@ export const config = {
 };
 
 async function getFarcasterProfileName(fid) {
+  console.log(`Fetching profile for FID: ${fid}`);
   try {
     const response = await fetch(`https://api.farcaster.xyz/v2/user?fid=${fid}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     const data = await response.json();
-    return data.result.username;
+    console.log('Farcaster API response:', JSON.stringify(data));
+    return data.result.username || 'Unknown User';
   } catch (error) {
     console.error("Error fetching Farcaster profile:", error);
     return "Unknown User";
@@ -22,7 +27,9 @@ export default async function handler(req) {
   const endDate = searchParams.get('endDate');
   const fid = searchParams.get('fid');
 
+  console.log('Generating image for FID:', fid);
   const username = await getFarcasterProfileName(fid);
+  console.log('Username fetched:', username);
 
   return new ImageResponse(
     (
