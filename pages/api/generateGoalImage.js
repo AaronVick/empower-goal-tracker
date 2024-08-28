@@ -1,5 +1,4 @@
 import { ImageResponse } from '@vercel/og';
-import axios from 'axios';
 
 export const config = {
   runtime: 'edge',
@@ -13,15 +12,19 @@ const USER_DATA_TYPES = {
 async function getFarcasterProfileName(fid) {
   console.log(`Fetching profile for FID: ${fid}`);
   try {
-    const response = await axios.get(`${PINATA_HUB_API}/userDataByFid`, {
-      params: { fid, user_data_type: USER_DATA_TYPES.USERNAME },
-      timeout: 10000,
+    const response = await fetch(`${PINATA_HUB_API}/userDataByFid?fid=${fid}&user_data_type=${USER_DATA_TYPES.USERNAME}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
-    if (response.data && response.data.data && response.data.data.userDataBody) {
-      return response.data.data.userDataBody.value || 'Unknown User';
-    } else {
-      return 'Unknown User';
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
+    return data?.data?.userDataBody?.value || 'Unknown User';
   } catch (error) {
     console.error("Error fetching Farcaster profile from Pinata:", error);
     return 'Unknown User';
