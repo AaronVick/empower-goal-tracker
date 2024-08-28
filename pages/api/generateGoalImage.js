@@ -19,11 +19,15 @@ async function getFarcasterProfileName(fid) {
       },
     });
 
+    console.log(`Response status: ${response.status}`);
+    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Data received from Pinata:', JSON.stringify(data, null, 2));
+    
     return data?.data?.userDataBody?.value || 'Unknown User';
   } catch (error) {
     console.error("Error fetching Farcaster profile from Pinata:", error);
