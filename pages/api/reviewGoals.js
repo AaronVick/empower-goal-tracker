@@ -28,22 +28,23 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "FID is required" });
   }
 
-  // Handle "Set New Goal" button click
+  // Handle "Home" button click
   if (buttonIndex === 3) {
     console.log('Home button clicked');
-    return res.redirect(307, `${baseUrl}`);
+    return res.redirect(302, baseUrl);
   }
 
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
-    // Log the query we're about to perform
-    console.log('Query:', `goals.where("user_id", "==", ${fid})`);
+    // Try querying with both number and string versions of FID
+    const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
+    const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
 
-    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
+    console.log('Query completed (number). Empty?', goalsSnapshotNum.empty, 'Size:', goalsSnapshotNum.size);
+    console.log('Query completed (string). Empty?', goalsSnapshotStr.empty, 'Size:', goalsSnapshotStr.size);
 
-    console.log('Query completed. Empty?', goalsSnapshot.empty);
-    console.log('Number of documents:', goalsSnapshot.size);
+    let goalsSnapshot = goalsSnapshotNum.empty ? goalsSnapshotStr : goalsSnapshotNum;
 
     // Log each document for debugging
     goalsSnapshot.forEach((doc) => {
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${noGoalImageUrl}" />
             <meta property="fc:frame:button:1" content="Home" />
-            <meta property="fc:frame:post_url:1" content="${baseUrl}" />
+            <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           </head>
         </html>
       `;
