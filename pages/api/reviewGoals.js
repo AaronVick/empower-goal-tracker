@@ -1,5 +1,5 @@
 import { db } from '../../lib/firebase';
-import { createReviewOGImage } from '../../lib/utils'; // Updated import path
+import { createReviewOGImage } from '../../lib/utils';
 
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
@@ -9,10 +9,11 @@ export default async function handler(req, res) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
-  let fid, currentIndex;
+  let fid, currentIndex, buttonIndex;
   if (req.method === 'POST') {
     fid = req.body?.untrustedData?.fid;
     currentIndex = parseInt(req.body?.untrustedData?.inputText || '0');
+    buttonIndex = parseInt(req.body?.untrustedData?.buttonIndex || '0');
   } else {
     fid = req.query.fid;
     currentIndex = parseInt(req.query.index || '0');
@@ -20,10 +21,17 @@ export default async function handler(req, res) {
 
   console.log('FID:', fid);
   console.log('Current Index:', currentIndex);
+  console.log('Button Index:', buttonIndex);
 
   if (!fid) {
     console.log('No FID provided');
     return res.status(400).json({ error: "FID is required" });
+  }
+
+  // Handle "Set New Goal" button click
+  if (buttonIndex === 3) {
+    console.log('Set New Goal button clicked');
+    return res.redirect(307, `${baseUrl}/api/start`);
   }
 
   try {
@@ -50,8 +58,16 @@ export default async function handler(req, res) {
     }
 
     const goals = goalsSnapshot.docs.map(doc => doc.data());
+    console.log(`Found ${goals.length} goals for FID:`, fid);
     const totalGoals = goals.length;
-    currentIndex = (currentIndex + totalGoals) % totalGoals; // Ensure index is within bounds
+
+    if (buttonIndex === 1) {
+      // Previous button
+      currentIndex = (currentIndex - 1 + totalGoals) % totalGoals;
+    } else if (buttonIndex === 2) {
+      // Next button
+      currentIndex = (currentIndex + 1) % totalGoals;
+    }
 
     const goalData = goals[currentIndex];
     console.log('Current goal data:', goalData);
@@ -76,7 +92,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:3" content="Set New Goal" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
-          <meta property="fc:frame:post_url:3" content="${baseUrl}/api/start" />
+          <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:input:text" content="${currentIndex}" />
         </head>
       </html>
