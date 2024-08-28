@@ -1,10 +1,11 @@
 import { db } from '../../lib/firebase';
+import { createReviewOGImage } from '../../utils';
 
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
   console.log('Request method:', req.method);
-  console.log('Request body:', req.body);
-  console.log('Request query:', req.query);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Request query:', JSON.stringify(req.query, null, 2));
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
@@ -31,14 +32,14 @@ export default async function handler(req, res) {
 
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
-      const imageUrl = `${baseUrl}/api/ogReview?error=no_goal`;
+      const noGoalImageUrl = createReviewOGImage("No goals set yet", "", "");
 
       const html = `
         <!DOCTYPE html>
         <html>
           <head>
             <meta property="fc:frame" content="vNext" />
-            <meta property="fc:frame:image" content="${imageUrl}" />
+            <meta property="fc:frame:image" content="${noGoalImageUrl}" />
             <meta property="fc:frame:button:1" content="Set a Goal" />
             <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
           </head>
@@ -55,7 +56,12 @@ export default async function handler(req, res) {
     const goalData = goals[currentIndex];
     console.log('Current goal data:', goalData);
 
-    const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&index=${currentIndex + 1}&total=${totalGoals}`;
+    const imageUrl = createReviewOGImage(
+      goalData.goal,
+      goalData.startDate.toDate().toLocaleDateString(),
+      goalData.endDate.toDate().toLocaleDateString(),
+      `Goal ${currentIndex + 1} of ${totalGoals}`
+    );
 
     console.log('Generated image URL:', imageUrl);
 
@@ -65,13 +71,13 @@ export default async function handler(req, res) {
         <head>
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${imageUrl}" />
-          <meta property="fc:frame:button:1" content="Previous Goal" />
-          <meta property="fc:frame:button:2" content="Next Goal" />
+          <meta property="fc:frame:button:1" content="Previous" />
+          <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:button:3" content="Set New Goal" />
-          <meta property="fc:frame:input:text" content="${currentIndex}" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:3" content="${baseUrl}/api/start" />
+          <meta property="fc:frame:input:text" content="${currentIndex}" />
         </head>
       </html>
     `;
