@@ -1,5 +1,5 @@
 import { db } from '../../lib/firebase';
-import { createReviewOGImage } from '../../utils';
+import { createReviewOGImage } from '../../lib/utils'; // Updated import path
 
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
