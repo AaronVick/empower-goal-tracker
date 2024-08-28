@@ -36,7 +36,19 @@ export default async function handler(req, res) {
 
   try {
     console.log('Attempting to fetch goals for FID:', fid);
+    
+    // Log the query we're about to perform
+    console.log('Query:', `goals.where("user_id", "==", "${fid}")`);
+    
     const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
+    
+    console.log('Query completed. Empty?', goalsSnapshot.empty);
+    console.log('Number of documents:', goalsSnapshot.size);
+
+    // Log each document for debugging
+    goalsSnapshot.forEach((doc) => {
+      console.log('Document ID:', doc.id, 'Data:', doc.data());
+    });
 
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
@@ -48,8 +60,8 @@ export default async function handler(req, res) {
           <head>
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${noGoalImageUrl}" />
-            <meta property="fc:frame:button:1" content="Set a Goal" />
-            <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
+            <meta property="fc:frame:button:1" content="Home" />
+            <meta property="fc:frame:post_url:1" content="${baseUrl}" />
           </head>
         </html>
       `;
@@ -89,10 +101,10 @@ export default async function handler(req, res) {
           <meta property="fc:frame:image" content="${imageUrl}" />
           <meta property="fc:frame:button:1" content="Previous" />
           <meta property="fc:frame:button:2" content="Next" />
-          <meta property="fc:frame:button:3" content="Set New Goal" />
+          <meta property="fc:frame:button:3" content="Home" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
-          <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url:3" content="${baseUrl}" />
           <meta property="fc:frame:input:text" content="${currentIndex}" />
         </head>
       </html>
