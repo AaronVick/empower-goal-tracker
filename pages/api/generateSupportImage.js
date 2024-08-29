@@ -1,48 +1,19 @@
 import { ImageResponse } from '@vercel/og';
+import fetch from 'node-fetch';
 
 export const config = {
   runtime: 'edge',
 };
-
-const PINATA_HUB_API = 'https://hub.pinata.cloud/v1';
-const USER_DATA_TYPES = {
-  USERNAME: 6,
-};
-
-async function getFarcasterProfileName(fid) {
-  console.log(`Fetching profile for FID: ${fid}`);
-  try {
-    const response = await fetch(`${PINATA_HUB_API}/userDataByFid?fid=${fid}&user_data_type=${USER_DATA_TYPES.USERNAME}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    console.log(`Response status: ${response.status}`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Data received from Pinata:', JSON.stringify(data, null, 2));
-    
-    return data?.data?.userDataBody?.value || 'Unknown User';
-  } catch (error) {
-    console.error("Error fetching Farcaster profile from Pinata:", error);
-    return 'Unknown User';
-  }
-}
 
 export default async function handler(req) {
   const { searchParams } = new URL(req.url);
   const goal = searchParams.get('goal');
   const fid = searchParams.get('fid');
 
-  console.log('Generating support image for FID:', fid);
-  const username = await getFarcasterProfileName(fid);
-  console.log('Username fetched:', username);
+  // Fetch the username using the FID (similar to how it’s done in generateGoalImage)
+  const response = await fetch(`https://pinata-endpoint-url.com/${fid}`);
+  const userData = await response.json();
+  const username = userData.username || 'Unknown User';
 
   return new ImageResponse(
     (
@@ -70,12 +41,6 @@ export default async function handler(req) {
     {
       width: 1200,
       height: 630,
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Expires': '0',
-        'Pragma': 'no-cache',
-        'Surrogate-Control': 'no-store',
-      },
     }
   );
 }
