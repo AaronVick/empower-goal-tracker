@@ -32,8 +32,19 @@ export default async function handler(req, res) {
 
   // Handle "Home" button click
   if (buttonIndex === 3) {
-    console.log('Home button clicked');
-    return res.redirect(302, baseUrl);
+    console.log('Home button clicked, redirecting to:', baseUrl);
+    return res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
+          <meta property="fc:frame:button:1" content="Start a Goal" />
+          <meta property="fc:frame:button:2" content="Review Goals" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api" />
+        </head>
+      </html>
+    `);
   }
 
   try {
@@ -58,7 +69,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${noGoalImageUrl}" />
             <meta property="fc:frame:button:1" content="Home" />
-            <meta property="fc:frame:post_url:1" content="${baseUrl}" />
+            <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
           </head>
         </html>
       `;
