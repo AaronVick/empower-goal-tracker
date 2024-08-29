@@ -22,13 +22,15 @@ async function sendCast() {
     // Log a confirmation that Firebase was initialized
     console.log("Firebase initialized successfully");
 
-    const today = new Date().toISOString().split('T')[0]; // Format today's date as YYYY-MM-DD
-    console.log("Today's date:", today);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to midnight for comparison
+    const isoToday = today.toISOString().split('T')[0]; // Format today's date as YYYY-MM-DD
+    console.log("Today's date:", isoToday);
 
     // Fetch active goals from Firebase
     const goalsSnapshot = await db.collection('goals')
-      .where('startDate', '<=', today)
-      .where('endDate', '>=', today)
+      .where('startDate', '<=', admin.firestore.Timestamp.fromDate(today))
+      .where('endDate', '>=', admin.firestore.Timestamp.fromDate(today))
       .get();
 
     if (goalsSnapshot.empty) {
@@ -44,7 +46,7 @@ async function sendCast() {
       console.log('Goal end date:', goalData.endDate.toDate().toISOString().split('T')[0]);
 
       // Ensure the goal is active today
-      if (goalData.startDate.toDate() <= new Date() && goalData.endDate.toDate() >= new Date()) {
+      if (goalData.startDate.toDate() <= today && goalData.endDate.toDate() >= today) {
         console.log('Goal is active today');
 
         const fid = goalData.user_id;
