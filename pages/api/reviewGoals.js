@@ -1,62 +1,97 @@
+import { db } from '../../lib/firebase';
+import { createReviewOGImage } from '../../lib/utils';
+
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
-  
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-  const fid = req.query.fid || req.body?.untrustedData?.fid;
-  let currentIndex = req.query.index ? parseInt(req.query.index) : 0;
+  console.log('Request method:', req.method);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Request query:', JSON.stringify(req.query, null, 2));
 
-  console.log('Base URL:', baseUrl);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
+
+  let fid, currentIndex, buttonIndex;
+  if (req.method === 'POST') {
+    const { untrustedData } = req.body;
+    fid = untrustedData.fid;
+    currentIndex = parseInt(untrustedData.state || '0');
+    buttonIndex = parseInt(untrustedData.buttonIndex || '0');
+  } else {
+    fid = req.query.fid;
+    currentIndex = parseInt(req.query.index || '0');
+  }
+
   console.log('FID:', fid);
   console.log('Current Index:', currentIndex);
+  console.log('Button Index:', buttonIndex);
 
   if (!fid) {
-    console.error('Error: FID is required');
+    console.log('No FID provided');
     return res.status(400).json({ error: "FID is required" });
   }
 
-  try {
-    console.log('Parsing ReviewGoals environment variable');
-    let reviewGoals = [];
+  // Handle "Home" button click
+  if (buttonIndex === 3) {
+    console.log('Home button clicked');
+    return res.redirect(302, baseUrl);
+  }
 
-    // Safely parse the environment variable to avoid breaking if it fails
+  try {
+    let goals = [];
+
+    // First, try to get goals from the environment variable
     try {
-      reviewGoals = JSON.parse(process.env.ReviewGoals || '[]');
+      goals = JSON.parse(process.env.ReviewGoals || '[]');
+      console.log('Goals from environment variable:', goals);
     } catch (parseError) {
       console.error('Error parsing ReviewGoals environment variable:', parseError);
-      return res.status(500).json({ error: "Failed to parse ReviewGoals environment variable" });
     }
 
-    console.log('Parsed Review Goals:', reviewGoals);
-
-    if (reviewGoals.length === 0) {
-      console.error('Error: No goals found in ReviewGoals');
-      return res.status(404).json({ error: "No active goals found" });
+    // If no goals from environment variable, fetch from Firebase
+    if (goals.length === 0) {
+      console.log('Attempting to fetch goals from Firebase for FID:', fid);
+      const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
+      goals = goalsSnapshot.docs.map(doc => doc.data());
+      console.log('Goals from Firebase:', goals);
     }
 
-    // Filter active goals based on current date
-    const now = new Date();
-    console.log('Current Date:', now);
-    const activeGoals = reviewGoals.filter(goal => {
-      const startDate = new Date(goal.startDate);
-      const endDate = new Date(goal.endDate);
-      const isActive = startDate <= now && endDate >= now;
-      console.log(`Goal: ${goal.goal}, Start Date: ${startDate}, End Date: ${endDate}, Active: ${isActive}`);
-      return isActive;
-    });
+    if (goals.length === 0) {
+      console.log('No goals found for FID:', fid);
+      const noGoalImageUrl = createReviewOGImage("No goals set yet", "", "");
 
-    if (activeGoals.length === 0) {
-      console.error('Error: No active goals within the date range');
-      return res.status(404).json({ error: "No active goals found within the date range" });
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta property="fc:frame" content="vNext" />
+            <meta property="fc:frame:image" content="${noGoalImageUrl}" />
+            <meta property="fc:frame:button:1" content="Home" />
+            <meta property="fc:frame:post_url:1" content="${baseUrl}" />
+          </head>
+        </html>
+      `;
+      console.log('Sending HTML response for no goals');
+      return res.setHeader('Content-Type', 'text/html').status(200).send(html);
     }
 
-    console.log('Active Goals:', activeGoals);
-    currentIndex = (currentIndex + activeGoals.length) % activeGoals.length;
-    const goalData = activeGoals[currentIndex];
+    console.log(`Found ${goals.length} goals for FID:`, fid);
+    console.log('All goals data:', JSON.stringify(goals));
 
-    console.log('Selected Goal Data:', goalData);
+    const totalGoals = goals.length;
 
-    const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate)}&endDate=${encodeURIComponent(goalData.endDate)}`;
-    console.log('Generated Image URL:', imageUrl);
+    if (buttonIndex === 1) {
+      // Previous button
+      currentIndex = (currentIndex - 1 + totalGoals) % totalGoals;
+    } else if (buttonIndex === 2) {
+      // Next button
+      currentIndex = (currentIndex + 1) % totalGoals;
+    }
+
+    const goalData = goals[currentIndex];
+    console.log('Current goal data:', JSON.stringify(goalData));
+
+    const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate)}&endDate=${encodeURIComponent(goalData.endDate)}&index=${currentIndex + 1}&total=${totalGoals}`;
+
+    console.log('Generated image URL:', imageUrl);
 
     const html = `
       <!DOCTYPE html>
@@ -67,20 +102,18 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:1" content="Previous" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:button:3" content="Home" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals?fid=${fid}&index=${currentIndex - 1}" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals?fid=${fid}&index=${currentIndex + 1}" />
-          <meta property="fc:frame:post_url:3" content="${baseUrl}/" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:state" content="${currentIndex}" />
         </head>
       </html>
     `;
-
-    console.log('Generated HTML:', html);
-
-    res.setHeader('Content-Type', 'text/html');
-    return res.status(200).send(html);
+    console.log('Sending HTML response for existing goals');
+    return res.setHeader('Content-Type', 'text/html').status(200).send(html);
 
   } catch (error) {
-    console.error('Error processing goals:', error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    console.error('Error fetching user goals:', error);
+    return res.status(500).json({ error: "Error fetching user goals" });
   }
 }
