@@ -10,39 +10,60 @@ export default async function handler(req, res) {
   console.log('Goal ID:', goalId);
 
   if (req.method === 'GET') {
-    // ... (keep existing GET method code)
+    try {
+      console.log('Fetching goal data for ID:', goalId);
+      const goalDoc = await db.collection('goals').doc(goalId).get();
+
+      if (!goalDoc.exists) {
+        console.error(`Goal ID ${goalId} not found.`);
+        return res.status(404).json({ error: 'Goal not found' });
+      }
+
+      const goalData = goalDoc.data();
+      console.log('Goal data fetched:', goalData);
+
+      // Store the username in the environment variable
+      process.env.SupportingWho = goalData.username || 'Unknown User';
+
+      const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&fid=${encodeURIComponent(goalData.user_id)}`;
+
+      console.log('Generated image URL:', imageUrl);
+
+      res.setHeader('Content-Type', 'text/html');
+      res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${imageUrl}" />
+          <meta property="fc:frame:button:1" content="Start Your Goal" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
+          <meta property="fc:frame:button:2" content="Support Me" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
+        </head>
+        </html>
+      `);
+    } catch (error) {
+      console.error("Error fetching goal:", error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
   } else if (req.method === 'POST') {
     try {
       console.log('Processing POST request');
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('Request body:', req.body);
       const { untrustedData } = req.body;
-      if (!untrustedData) {
-        throw new Error('Missing untrustedData in request body');
-      }
       const buttonIndex = parseInt(untrustedData.buttonIndex);
       console.log('Button Index:', buttonIndex);
 
       if (buttonIndex === 1) {
         console.log('Start Your Goal button clicked');
-        return res.redirect(302, `${baseUrl}/api/start`);
+        res.redirect(302, `${baseUrl}/api/start`);
       } else if (buttonIndex === 2) {
         console.log('Support Me button clicked');
         const supporterId = untrustedData.fid;
-        console.log('Supporter ID:', supporterId);
-
-        if (!goalId) {
-          throw new Error('Goal ID is missing or invalid');
-        }
 
         const goalRef = db.collection('goals').doc(goalId);
-        console.log('Goal Ref:', goalRef.path);
-
-        if (!supporterId) {
-          throw new Error('Supporter ID is missing or invalid');
-        }
-
         const supporterRef = goalRef.collection('supporters').doc(supporterId.toString());
-        console.log('Supporter Ref:', supporterRef.path);
 
         const supporterDoc = await supporterRef.get();
         if (supporterDoc.exists) {
@@ -63,27 +84,17 @@ export default async function handler(req, res) {
         console.log('Support logged successfully');
 
         const goalDoc = await goalRef.get();
-        if (!goalDoc.exists) {
-          throw new Error(`Goal with ID ${goalId} not found`);
-        }
         const goalData = goalDoc.data();
-        console.log('Goal Data:', JSON.stringify(goalData, null, 2));
 
-        if (!goalData.user_id) {
-          throw new Error('User ID is missing from goal data');
-        }
-
-        // Fetch the username from the user's document
-        const userDoc = await db.collection('users').doc(goalData.user_id).get();
-        const username = userDoc.exists ? userDoc.data().username : 'Unknown User';
-        console.log('Username:', username);
+        // Retrieve the username from the environment variable
+        const username = process.env.SupportingWho || 'Unknown User';
 
         const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}&username=${encodeURIComponent(username)}`;
 
         console.log('Generated support image URL:', imageUrl);
 
         res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(`
+        res.status(200).send(`
           <!DOCTYPE html>
           <html>
           <head>
@@ -96,13 +107,13 @@ export default async function handler(req, res) {
         `);
       } else {
         console.log('Unknown button index received:', buttonIndex);
-        return res.status(400).json({ error: 'Invalid button index' });
+        res.status(400).json({ error: 'Invalid button index' });
       }
     } catch (error) {
       console.error("Error processing request:", error);
-      return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+      res.status(500).json({ error: 'Internal Server Error' });
     }
   } else {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ error: 'Method not allowed' });
   }
 }
