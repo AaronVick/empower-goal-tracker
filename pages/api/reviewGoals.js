@@ -1,4 +1,5 @@
 import { db } from '../../lib/firebase';
+import { createReviewOGImage } from '../../lib/utils';
 
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
     buttonIndex = parseInt(untrustedData.buttonIndex || '0');
   } else if (req.method === 'GET') {
     fid = req.query.fid;
-    currentIndex = parseInt(req.query.index || '0');
+    currentIndex = 0;
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -37,15 +38,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Attempting to fetch goals from Firebase for FID:', fid);
+    console.log('Attempting to fetch goals for FID:', fid);
 
-    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
+    const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
+    const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
 
-    console.log('Query completed. Empty?', goalsSnapshot.empty, 'Size:', goalsSnapshot.size);
+    console.log('Query completed (number). Empty?', goalsSnapshotNum.empty, 'Size:', goalsSnapshotNum.size);
+    console.log('Query completed (string). Empty?', goalsSnapshotStr.empty, 'Size:', goalsSnapshotStr.size);
+
+    let goalsSnapshot = goalsSnapshotNum.empty ? goalsSnapshotStr : goalsSnapshotNum;
 
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
-      const noGoalImageUrl = `${baseUrl}/api/ogReview?error=no_goals`;
+      const noGoalImageUrl = createReviewOGImage("No goals set yet", "", "");
 
       const html = `
         <!DOCTYPE html>
@@ -64,6 +69,7 @@ export default async function handler(req, res) {
 
     const goals = goalsSnapshot.docs.map(doc => doc.data());
     console.log(`Found ${goals.length} goals for FID:`, fid);
+    console.log('All goals data:', JSON.stringify(goals));
 
     const totalGoals = goals.length;
 
@@ -91,7 +97,9 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:1" content="Previous" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:button:3" content="Home" />
-          <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:state" content="${currentIndex}" />
         </head>
       </html>
