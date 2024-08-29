@@ -15,11 +15,9 @@ export default async function handler(req, res) {
     fid = untrustedData.fid;
     currentIndex = parseInt(untrustedData.state || '0');
     buttonIndex = parseInt(untrustedData.buttonIndex || '0');
-  } else if (req.method === 'GET') {
-    fid = req.query.fid;
-    currentIndex = 0; // Start with the first goal for GET requests
   } else {
-    return res.status(405).json({ error: 'Method not allowed' });
+    fid = req.query.fid;
+    currentIndex = 0;
   }
 
   console.log('FID:', fid);
@@ -40,9 +38,19 @@ export default async function handler(req, res) {
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
-    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
+    // Log the exact queries we're about to perform
+    console.log('Query (number):', `goals.where("user_id", "==", ${Number(fid)})`);
+    console.log('Query (string):', `goals.where("user_id", "==", "${fid.toString()}")`);
 
-    console.log('Query completed. Empty?', goalsSnapshot.empty, 'Size:', goalsSnapshot.size);
+    const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
+    const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
+
+    console.log('Query completed (number). Empty?', goalsSnapshotNum.empty, 'Size:', goalsSnapshotNum.size);
+    console.log('Query completed (string). Empty?', goalsSnapshotStr.empty, 'Size:', goalsSnapshotStr.size);
+
+    let goalsSnapshot = goalsSnapshotNum.empty ? goalsSnapshotStr : goalsSnapshotNum;
+
+    console.log('Final goals snapshot. Empty?', goalsSnapshot.empty, 'Size:', goalsSnapshot.size);
 
     // Log each document for debugging
     goalsSnapshot.forEach((doc) => {
@@ -60,7 +68,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${noGoalImageUrl}" />
             <meta property="fc:frame:button:1" content="Home" />
-            <meta property="fc:frame:post_url:1" content="${baseUrl}" />
+            <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           </head>
         </html>
       `;
@@ -70,6 +78,8 @@ export default async function handler(req, res) {
 
     const goals = goalsSnapshot.docs.map(doc => doc.data());
     console.log(`Found ${goals.length} goals for FID:`, fid);
+    console.log('All goals data:', JSON.stringify(goals));
+
     const totalGoals = goals.length;
 
     if (buttonIndex === 1) {
