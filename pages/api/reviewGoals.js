@@ -9,23 +9,22 @@ export default async function handler(req, res) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
-  let fid, buttonIndex, currentIndex;
-
-  if (req.method === 'GET') {
-    fid = req.query.fid;
-    currentIndex = 0; // Start with the first goal for GET requests
-  } else if (req.method === 'POST') {
+  let fid, currentIndex, buttonIndex;
+  if (req.method === 'POST') {
     const { untrustedData } = req.body;
     fid = untrustedData.fid;
+    currentIndex = parseInt(untrustedData.inputText || '0');
     buttonIndex = parseInt(untrustedData.buttonIndex || '0');
-    currentIndex = parseInt(untrustedData.state || '0');
+  } else if (req.method === 'GET') {
+    fid = req.query.fid;
+    currentIndex = parseInt(req.query.index || '0');
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   console.log('FID:', fid);
-  console.log('Button Index:', buttonIndex);
   console.log('Current Index:', currentIndex);
+  console.log('Button Index:', buttonIndex);
 
   if (!fid) {
     console.log('No FID provided');
@@ -45,6 +44,11 @@ export default async function handler(req, res) {
 
     console.log('Query completed. Empty?', goalsSnapshot.empty, 'Size:', goalsSnapshot.size);
 
+    // Log each document for debugging
+    goalsSnapshot.forEach((doc) => {
+      console.log('Document ID:', doc.id, 'Data:', JSON.stringify(doc.data()));
+    });
+
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
       const noGoalImageUrl = createReviewOGImage("No goals set yet", "", "");
@@ -56,7 +60,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${noGoalImageUrl}" />
             <meta property="fc:frame:button:1" content="Home" />
-            <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
+            <meta property="fc:frame:post_url:1" content="${baseUrl}" />
           </head>
         </html>
       `;
@@ -95,7 +99,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
-          <meta property="fc:frame:state" content="${currentIndex}" />
+          <meta property="fc:frame:input:text" content="${currentIndex}" />
         </head>
       </html>
     `;
