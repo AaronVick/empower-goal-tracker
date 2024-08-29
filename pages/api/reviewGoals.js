@@ -16,7 +16,16 @@ export default async function handler(req, res) {
 
   try {
     console.log('Parsing ReviewGoals environment variable');
-    const reviewGoals = JSON.parse(process.env.ReviewGoals || '[]');
+    let reviewGoals = [];
+
+    // Safely parse the environment variable to avoid breaking if it fails
+    try {
+      reviewGoals = JSON.parse(process.env.ReviewGoals || '[]');
+    } catch (parseError) {
+      console.error('Error parsing ReviewGoals environment variable:', parseError);
+      return res.status(500).json({ error: "Failed to parse ReviewGoals environment variable" });
+    }
+
     console.log('Parsed Review Goals:', reviewGoals);
 
     if (reviewGoals.length === 0) {
