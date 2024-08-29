@@ -3,37 +3,51 @@ export default async function handler(req, res) {
   
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
   const fid = req.query.fid || req.body?.untrustedData?.fid;
+  let currentIndex = req.query.index ? parseInt(req.query.index) : 0;
+
+  console.log('Base URL:', baseUrl);
+  console.log('FID:', fid);
+  console.log('Current Index:', currentIndex);
 
   if (!fid) {
+    console.error('Error: FID is required');
     return res.status(400).json({ error: "FID is required" });
   }
 
   try {
-    // Retrieve all goals from the environment variable ReviewGoals
+    console.log('Parsing ReviewGoals environment variable');
     const reviewGoals = JSON.parse(process.env.ReviewGoals || '[]');
+    console.log('Parsed Review Goals:', reviewGoals);
 
     if (reviewGoals.length === 0) {
+      console.error('Error: No goals found in ReviewGoals');
       return res.status(404).json({ error: "No active goals found" });
     }
 
-    // Filter goals based on dates
+    // Filter active goals based on current date
     const now = new Date();
+    console.log('Current Date:', now);
     const activeGoals = reviewGoals.filter(goal => {
       const startDate = new Date(goal.startDate);
       const endDate = new Date(goal.endDate);
-      return startDate <= now && endDate >= now;
+      const isActive = startDate <= now && endDate >= now;
+      console.log(`Goal: ${goal.goal}, Start Date: ${startDate}, End Date: ${endDate}, Active: ${isActive}`);
+      return isActive;
     });
 
     if (activeGoals.length === 0) {
+      console.error('Error: No active goals within the date range');
       return res.status(404).json({ error: "No active goals found within the date range" });
     }
 
-    let currentIndex = req.query.index ? parseInt(req.query.index) : 0;
+    console.log('Active Goals:', activeGoals);
     currentIndex = (currentIndex + activeGoals.length) % activeGoals.length;
-
     const goalData = activeGoals[currentIndex];
 
+    console.log('Selected Goal Data:', goalData);
+
     const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate)}&endDate=${encodeURIComponent(goalData.endDate)}`;
+    console.log('Generated Image URL:', imageUrl);
 
     const html = `
       <!DOCTYPE html>
@@ -50,6 +64,9 @@ export default async function handler(req, res) {
         </head>
       </html>
     `;
+
+    console.log('Generated HTML:', html);
+
     res.setHeader('Content-Type', 'text/html');
     return res.status(200).send(html);
 
