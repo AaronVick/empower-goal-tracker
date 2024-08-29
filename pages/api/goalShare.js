@@ -9,19 +9,51 @@ export default async function handler(req, res) {
   console.log('Request method:', req.method);
   console.log('Goal ID:', goalId);
 
-  if (req.method === 'GET') {
-    // ... (keep the existing GET method code unchanged)
-  } else if (req.method === 'POST') {
-    try {
+  try {
+    if (req.method === 'GET') {
+      console.log('Fetching goal data for ID:', goalId);
+      const goalDoc = await db.collection('goals').doc(goalId).get();
+
+      if (!goalDoc.exists) {
+        console.error(`Goal ID ${goalId} not found.`);
+        return res.status(404).json({ error: 'Goal not found' });
+      }
+
+      const goalData = goalDoc.data();
+      console.log('Goal data fetched:', goalData);
+
+      const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&fid=${encodeURIComponent(goalData.user_id)}`;
+
+      console.log('Generated image URL:', imageUrl);
+
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${imageUrl}" />
+          <meta property="fc:frame:button:1" content="Start Your Goal" />
+          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
+          <meta property="fc:frame:button:2" content="Support Me" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
+        </head>
+        </html>
+      `);
+    } else if (req.method === 'POST') {
       console.log('Processing POST request');
       console.log('Request body:', req.body);
       const { untrustedData } = req.body;
+      if (!untrustedData) {
+        console.error('Missing untrustedData in request body');
+        return res.status(400).json({ error: 'Missing untrustedData in request body' });
+      }
       const buttonIndex = parseInt(untrustedData.buttonIndex);
       console.log('Button Index:', buttonIndex);
 
       if (buttonIndex === 1) {
         console.log('Start Your Goal button clicked');
-        res.redirect(302, `${baseUrl}/api/start`);
+        return res.redirect(302, `${baseUrl}/api/start`);
       } else if (buttonIndex === 2) {
         console.log('Support Me button clicked');
         const supporterId = untrustedData.fid;
@@ -50,12 +82,12 @@ export default async function handler(req, res) {
         const goalDoc = await goalRef.get();
         const goalData = goalDoc.data();
 
-        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}&username=${encodeURIComponent(goalData.username)}`;
+        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}&username=${encodeURIComponent(goalData.username || 'Unknown User')}`;
 
         console.log('Generated support image URL:', imageUrl);
 
         res.setHeader('Content-Type', 'text/html');
-        res.status(200).send(`
+        return res.status(200).send(`
           <!DOCTYPE html>
           <html>
           <head>
@@ -68,13 +100,13 @@ export default async function handler(req, res) {
         `);
       } else {
         console.log('Unknown button index received:', buttonIndex);
-        res.status(400).json({ error: 'Invalid button index' });
+        return res.status(400).json({ error: 'Invalid button index' });
       }
-    } catch (error) {
-      console.error("Error processing request:", error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      return res.status(405).json({ error: 'Method not allowed' });
     }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+  } catch (error) {
+    console.error("Error in goalShare handler:", error);
+    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 }
