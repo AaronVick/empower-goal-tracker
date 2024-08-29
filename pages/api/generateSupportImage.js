@@ -70,6 +70,12 @@ export default async function handler(req) {
     {
       width: 1200,
       height: 630,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Expires': '0',
+        'Pragma': 'no-cache',
+        'Surrogate-Control': 'no-store',
+      },
     }
   );
 }
