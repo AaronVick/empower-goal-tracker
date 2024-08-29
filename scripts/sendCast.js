@@ -14,6 +14,11 @@ admin.initializeApp({
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
 });
 
+// Function to format a Firebase timestamp to YYYY-MM-DD
+function formatDate(timestamp) {
+  return timestamp.toDate().toISOString().split('T')[0];
+}
+
 // Function to send a cast
 async function sendCast() {
   try {
@@ -27,52 +32,59 @@ async function sendCast() {
 
     // Fetch active goals from Firebase
     const goalsSnapshot = await db.collection('goals')
-      .where('startDate', '<=', today)
-      .where('endDate', '>=', today)
       .get();
 
     if (goalsSnapshot.empty) {
-      console.log('No active goals found for today');
+      console.log('No goals found in the database');
       return;
     }
 
-    console.log(`Found ${goalsSnapshot.size} active goal(s) for today.`);
-
-    // Loop through active goals and send casts
+    // Loop through active goals and filter those active for today
     goalsSnapshot.forEach(async (doc) => {
       const goalData = doc.data();
+      const startDate = formatDate(goalData.startDate);
+      const endDate = formatDate(goalData.endDate);
+
       console.log('Processing goal:', goalData.goal);
+      console.log('Goal start date:', startDate);
+      console.log('Goal end date:', endDate);
 
-      // Assuming the FID is stored in user_id
-      const fid = goalData.user_id;
-      console.log('FID:', fid);
+      // Check if the goal is active for today
+      if (startDate <= today && endDate >= today) {
+        console.log('Goal is active today');
+        
+        // Assuming the FID is stored in user_id
+        const fid = goalData.user_id;
+        console.log('FID for this goal:', fid);
 
-      // Lookup username via Pinata API
-      const pinataResponse = await axios.get(`https://api.pinata.cloud/v3/farcaster/user/${fid}`, {
-        headers: {
-          Authorization: `Bearer ${process.env.PINATA_API_KEY}`
-        }
-      });
+        // Lookup username via Pinata API
+        const pinataResponse = await axios.get(`https://api.pinata.cloud/v3/farcaster/user/${fid}`, {
+          headers: {
+            Authorization: `Bearer ${process.env.PINATA_API_KEY}`
+          }
+        });
 
-      const username = pinataResponse.data.user.username;
-      console.log('Username found:', username);
+        const username = pinataResponse.data.user.username;
+        console.log('Username found:', username);
 
-      // Construct the message
-      const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
-      console.log('Constructed message:', message);
+        // Construct the message
+        const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-      // Send the cast via the Farcaster API
-      const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
-        fid,
-        message
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
-        }
-      });
+        // Send the cast via the Farcaster API
+        const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
+          fid,
+          message
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
+          }
+        });
 
-      console.log('Cast sent successfully:', castResponse.data);
+        console.log('Cast sent successfully:', castResponse.data);
+      } else {
+        console.log('Goal is not active today');
+      }
     });
   } catch (error) {
     console.error('Error occurred during sendCast:', error);
