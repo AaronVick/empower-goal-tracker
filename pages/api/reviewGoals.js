@@ -38,10 +38,6 @@ export default async function handler(req, res) {
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
-    // Log the exact queries we're about to perform
-    console.log('Query (number):', `goals.where("user_id", "==", ${Number(fid)})`);
-    console.log('Query (string):', `goals.where("user_id", "==", "${fid.toString()}")`);
-
     const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
     const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
 
@@ -49,13 +45,6 @@ export default async function handler(req, res) {
     console.log('Query completed (string). Empty?', goalsSnapshotStr.empty, 'Size:', goalsSnapshotStr.size);
 
     let goalsSnapshot = goalsSnapshotNum.empty ? goalsSnapshotStr : goalsSnapshotNum;
-
-    console.log('Final goals snapshot. Empty?', goalsSnapshot.empty, 'Size:', goalsSnapshot.size);
-
-    // Log each document for debugging
-    goalsSnapshot.forEach((doc) => {
-      console.log('Document ID:', doc.id, 'Data:', JSON.stringify(doc.data()));
-    });
 
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
