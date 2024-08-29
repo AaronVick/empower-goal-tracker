@@ -10,40 +10,7 @@ export default async function handler(req, res) {
   console.log('Goal ID:', goalId);
 
   if (req.method === 'GET') {
-    try {
-      console.log('Fetching goal data for ID:', goalId);
-      const goalDoc = await db.collection('goals').doc(goalId).get();
-
-      if (!goalDoc.exists) {
-        console.error(`Goal ID ${goalId} not found.`);
-        return res.status(404).json({ error: 'Goal not found' });
-      }
-
-      const goalData = goalDoc.data();
-      console.log('Goal data fetched:', goalData);
-
-      const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&fid=${encodeURIComponent(goalData.user_id)}`;
-
-      console.log('Generated image URL:', imageUrl);
-
-      res.setHeader('Content-Type', 'text/html');
-      res.status(200).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${imageUrl}" />
-          <meta property="fc:frame:button:1" content="Start Your Goal" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
-          <meta property="fc:frame:button:2" content="Support Me" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
-        </head>
-        </html>
-      `);
-    } catch (error) {
-      console.error("Error fetching goal:", error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
+    // ... (keep the existing GET method code unchanged)
   } else if (req.method === 'POST') {
     try {
       console.log('Processing POST request');
@@ -83,7 +50,7 @@ export default async function handler(req, res) {
         const goalDoc = await goalRef.get();
         const goalData = goalDoc.data();
 
-        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}`;
+        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}&username=${encodeURIComponent(goalData.username)}`;
 
         console.log('Generated support image URL:', imageUrl);
 

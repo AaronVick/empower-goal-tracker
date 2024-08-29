@@ -4,23 +4,11 @@ export const config = {
   runtime: 'edge',
 };
 
-async function getFarcasterProfileName(fid) {
-  try {
-    const response = await fetch(`https://api.farcaster.xyz/v2/user?fid=${fid}`);
-    const data = await response.json();
-    return data.result.username;
-  } catch (error) {
-    console.error("Error fetching Farcaster profile:", error);
-    return "Unknown User";
-  }
-}
-
 export default async function handler(req) {
   const { searchParams } = new URL(req.url);
   const goal = searchParams.get('goal');
   const fid = searchParams.get('fid');
-
-  const username = await getFarcasterProfileName(fid);
+  const username = searchParams.get('username') || 'Unknown User';
 
   return new ImageResponse(
     (
