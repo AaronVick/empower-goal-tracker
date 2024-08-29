@@ -15,9 +15,11 @@ export default async function handler(req, res) {
     fid = untrustedData.fid;
     currentIndex = parseInt(untrustedData.state || '0');
     buttonIndex = parseInt(untrustedData.buttonIndex || '0');
-  } else {
+  } else if (req.method === 'GET') {
     fid = req.query.fid;
     currentIndex = parseInt(req.query.index || '0');
+  } else {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   console.log('FID:', fid);
