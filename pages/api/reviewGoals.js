@@ -15,16 +15,15 @@ export default async function handler(req, res) {
     fid = untrustedData.fid;
     currentIndex = parseInt(untrustedData.state || '0');
     buttonIndex = parseInt(untrustedData.buttonIndex || '0');
+    console.log('POST request received. FID:', fid, 'Current Index:', currentIndex, 'Button Index:', buttonIndex);
   } else if (req.method === 'GET') {
     fid = req.query.fid;
     currentIndex = 0;
+    console.log('GET request received. FID:', fid);
   } else {
+    console.log('Invalid request method:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  console.log('FID:', fid);
-  console.log('Current Index:', currentIndex);
-  console.log('Button Index:', buttonIndex);
 
   if (!fid) {
     console.log('No FID provided');
@@ -97,9 +96,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:1" content="Previous" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:button:3" content="Home" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/reviewGoals" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/reviewGoals" />
-          <meta property="fc:frame:post_url:3" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:state" content="${currentIndex}" />
         </head>
       </html>
