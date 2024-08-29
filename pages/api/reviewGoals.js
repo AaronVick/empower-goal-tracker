@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     buttonIndex = parseInt(untrustedData.buttonIndex || '0');
   } else if (req.method === 'GET') {
     fid = req.query.fid;
-    currentIndex = 0;
+    currentIndex = 0; // Start with the first goal for GET requests
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
