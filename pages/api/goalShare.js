@@ -11,35 +11,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      console.log('Fetching goal data for ID:', goalId);
-      const goalDoc = await db.collection('goals').doc(goalId).get();
-
-      if (!goalDoc.exists) {
-        console.error(`Goal ID ${goalId} not found.`);
-        return res.status(404).json({ error: 'Goal not found' });
-      }
-
-      const goalData = goalDoc.data();
-      console.log('Goal data fetched:', goalData);
-
-      const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&fid=${encodeURIComponent(goalData.user_id)}`;
-
-      console.log('Generated image URL:', imageUrl);
-
-      res.setHeader('Content-Type', 'text/html');
-      return res.status(200).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${imageUrl}" />
-          <meta property="fc:frame:button:1" content="Start Your Goal" />
-          <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
-          <meta property="fc:frame:button:2" content="Support Me" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}" />
-        </head>
-        </html>
-      `);
+      // ... (keep existing GET method code)
     } else if (req.method === 'POST') {
       console.log('Processing POST request');
       console.log('Request body:', req.body);
@@ -59,6 +31,20 @@ export default async function handler(req, res) {
         const supporterId = untrustedData.fid;
 
         const goalRef = db.collection('goals').doc(goalId);
+        const goalDoc = await goalRef.get();
+        
+        if (!goalDoc.exists) {
+          console.error(`Goal ID ${goalId} not found.`);
+          return res.status(404).json({ error: 'Goal not found' });
+        }
+
+        const goalData = goalDoc.data();
+        console.log('Goal data:', goalData);
+
+        // Retrieve the username from the goal data
+        const username = goalData.username || await fetchUsernameFromFid(goalData.user_id);
+        console.log('Username:', username);
+
         const supporterRef = goalRef.collection('supporters').doc(supporterId.toString());
 
         const supporterDoc = await supporterRef.get();
@@ -79,10 +65,7 @@ export default async function handler(req, res) {
 
         console.log('Support logged successfully');
 
-        const goalDoc = await goalRef.get();
-        const goalData = goalDoc.data();
-
-        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}&username=${encodeURIComponent(goalData.username || 'Unknown User')}`;
+        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}&username=${encodeURIComponent(username)}`;
 
         console.log('Generated support image URL:', imageUrl);
 
@@ -108,5 +91,18 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Error in goalShare handler:", error);
     return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+}
+
+// Function to fetch username from FID if not stored with the goal
+async function fetchUsernameFromFid(fid) {
+  try {
+    // Implement the logic to fetch the username from the FID
+    // This could be a call to a Farcaster API or your own user database
+    // For now, we'll return a placeholder
+    return `User_${fid}`;
+  } catch (error) {
+    console.error("Error fetching username from FID:", error);
+    return "Unknown User";
   }
 }
