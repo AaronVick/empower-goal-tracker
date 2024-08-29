@@ -3,10 +3,12 @@ name: Scheduled Cast
 on:
   schedule:
     - cron: '0 0 * * *'  # This runs every day at midnight UTC
+  workflow_dispatch:      # This allows manual triggering of the workflow
 
 jobs:
   send-cast:
     runs-on: ubuntu-latest
+    environment: scheduling  # Specify the environment where the secrets are stored
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
