@@ -20,6 +20,7 @@ jobs:
         run: npm install
 
       - name: Run the cast script
+        run: npm run send-cast
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
@@ -28,4 +29,3 @@ jobs:
           FIREBASE_TYPE: ${{ secrets.FIREBASE_TYPE }}
           WARPCAST_PRIVATE_KEY: ${{ secrets.WARPCAST_PRIVATE_KEY }}
           WARPCAST_FID: ${{ secrets.WARPCAST_FID }}
-        run: npm run send-cast
