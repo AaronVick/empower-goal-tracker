@@ -23,6 +23,7 @@ async function sendCast() {
     console.log("Firebase initialized successfully");
 
     const today = new Date().toISOString().split('T')[0]; // Format today's date as YYYY-MM-DD
+    console.log("Today's date:", today);
 
     // Fetch active goals from Firebase
     const goalsSnapshot = await db.collection('goals')
@@ -35,6 +36,8 @@ async function sendCast() {
       return;
     }
 
+    console.log(`Found ${goalsSnapshot.size} active goal(s) for today.`);
+
     // Loop through active goals and send casts
     goalsSnapshot.forEach(async (doc) => {
       const goalData = doc.data();
@@ -42,6 +45,7 @@ async function sendCast() {
 
       // Assuming the FID is stored in user_id
       const fid = goalData.user_id;
+      console.log('FID:', fid);
 
       // Lookup username via Pinata API
       const pinataResponse = await axios.get(`https://api.pinata.cloud/v3/farcaster/user/${fid}`, {
@@ -55,6 +59,7 @@ async function sendCast() {
 
       // Construct the message
       const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+      console.log('Constructed message:', message);
 
       // Send the cast via the Farcaster API
       const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
