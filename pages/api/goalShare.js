@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     try {
       console.log('Fetching goal data for ID:', goalId);
       const goalDoc = await db.collection('goals').doc(goalId).get();
-      
+
       if (!goalDoc.exists) {
         console.error(`Goal ID ${goalId} not found.`);
         return res.status(404).json({ error: 'Goal not found' });
