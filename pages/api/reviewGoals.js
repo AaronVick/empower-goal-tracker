@@ -36,23 +36,26 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Attempting to fetch goals from Firebase for FID:', fid);
+
+    // Query with both number and string versions of FID
+    const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
+    const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
+
+    console.log('Query results (number FID):', goalsSnapshotNum.size, 'documents');
+    console.log('Query results (string FID):', goalsSnapshotStr.size, 'documents');
+
     let goals = [];
-
-    // First, try to get goals from the environment variable
-    try {
-      goals = JSON.parse(process.env.ReviewGoals || '[]');
-      console.log('Goals from environment variable:', goals);
-    } catch (parseError) {
-      console.error('Error parsing ReviewGoals environment variable:', parseError);
+    if (!goalsSnapshotNum.empty) {
+      goals = goalsSnapshotNum.docs.map(doc => doc.data());
+    } else if (!goalsSnapshotStr.empty) {
+      goals = goalsSnapshotStr.docs.map(doc => doc.data());
     }
 
-    // If no goals from environment variable, fetch from Firebase
-    if (goals.length === 0) {
-      console.log('Attempting to fetch goals from Firebase for FID:', fid);
-      const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
-      goals = goalsSnapshot.docs.map(doc => doc.data());
-      console.log('Goals from Firebase:', goals);
-    }
+    console.log('Goals fetched:', goals.length);
+    goals.forEach((goal, index) => {
+      console.log(`Goal ${index + 1}:`, JSON.stringify(goal));
+    });
 
     if (goals.length === 0) {
       console.log('No goals found for FID:', fid);
@@ -73,9 +76,6 @@ export default async function handler(req, res) {
       return res.setHeader('Content-Type', 'text/html').status(200).send(html);
     }
 
-    console.log(`Found ${goals.length} goals for FID:`, fid);
-    console.log('All goals data:', JSON.stringify(goals));
-
     const totalGoals = goals.length;
 
     if (buttonIndex === 1) {
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
     const goalData = goals[currentIndex];
     console.log('Current goal data:', JSON.stringify(goalData));
 
-    const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate)}&endDate=${encodeURIComponent(goalData.endDate)}&index=${currentIndex + 1}&total=${totalGoals}`;
+    const imageUrl = `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&index=${currentIndex + 1}&total=${totalGoals}`;
 
     console.log('Generated image URL:', imageUrl);
 
