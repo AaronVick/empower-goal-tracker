@@ -61,23 +61,16 @@ async function sendCast() {
 
         // Construct the cast message with the custody address and other required fields
         const message = {
-          method: "cast_add",
-          params: {
-            body: {
-              text: `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`,
-              embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
-              mentions: [fid],
-            }
+          castAddBody: {
+            text: `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`,
+            embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
+            mentions: [fid],
           },
-          id: 1,
-          jsonrpc: "2.0",
-          timestamp: Math.floor(Date.now() / 1000),
-          nonce: Math.random().toString(36).substring(7),
-          network: 1,
+          signerId: custodyAddress
         };
 
         // Send the cast via the Farcaster API
-        const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', message, {
+        const castResponse = await axios.post('https://api.pinata.cloud/v3/farcaster/casts', message, {
           headers: {
             'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`,
             'Content-Type': 'application/json'
