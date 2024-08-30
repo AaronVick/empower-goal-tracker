@@ -22,9 +22,6 @@ export default async function handler(req, res) {
       const goalData = goalDoc.data();
       console.log('Goal data fetched:', goalData);
 
-      // Store the username in the environment variable
-      process.env.SupportingWho = goalData.username || 'Unknown User';
-
       const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&fid=${encodeURIComponent(goalData.user_id)}`;
 
       console.log('Generated image URL:', imageUrl);
@@ -39,7 +36,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:1" content="Start Your Goal" />
           <meta property="fc:frame:post_url:1" content="${baseUrl}/api/start" />
           <meta property="fc:frame:button:2" content="Support Me" />
-          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}&username=${encodeURIComponent(process.env.SupportingWho)}" />
+          <meta property="fc:frame:post_url:2" content="${baseUrl}/api/goalShare?id=${encodeURIComponent(goalId)}&action=support" />
         </head>
         </html>
       `);
@@ -86,10 +83,7 @@ export default async function handler(req, res) {
         const goalDoc = await goalRef.get();
         const goalData = goalDoc.data();
 
-        // Retrieve the username from the query parameter
-        const username = req.query.username || 'Unknown User';
-
-        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}&username=${encodeURIComponent(username)}`;
+        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}`;
 
         console.log('Generated support image URL:', imageUrl);
 
