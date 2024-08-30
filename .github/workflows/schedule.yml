@@ -31,3 +31,6 @@ jobs:
           FIREBASE_TYPE: ${{ secrets.FIREBASE_TYPE }}
           WARPCAST_PRIVATE_KEY: ${{ secrets.WARPCAST_PRIVATE_KEY }}
           WARPCAST_FID: ${{ secrets.WARPCAST_FID }}
+          PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
+          PINATA_SECRET: ${{ secrets.PINATA_SECRET }}
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}

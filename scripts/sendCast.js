@@ -17,9 +17,16 @@ admin.initializeApp({
 // Function to send a cast
 async function sendCast() {
   try {
+    // Check if Pinata credentials are set
+    if (!process.env.PINATA_JWT) {
+      throw new Error('PINATA_JWT is not set in the environment variables');
+    }
+    if (!process.env.PINATA_API_KEY || !process.env.PINATA_SECRET) {
+      console.warn('PINATA_API_KEY or PINATA_SECRET is not set. These might be needed for some operations.');
+    }
+
     const db = admin.firestore();
 
-    // Log a confirmation that Firebase was initialized
     console.log("Firebase initialized successfully");
 
     const today = new Date();
@@ -57,6 +64,7 @@ async function sendCast() {
           const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
             headers: {
               'Authorization': `Bearer ${process.env.PINATA_JWT}`,
+              'x-api-key': process.env.PINATA_API_KEY
             }
           });
 
@@ -64,11 +72,11 @@ async function sendCast() {
           console.log('Display name found:', displayName);
 
           // Construct the message
-          const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+          const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
           // Send the cast via the Farcaster API
           const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
-            fid,
+            fid: process.env.WARPCAST_FID, // Use the FID from environment variables
             message
           }, {
             headers: {
@@ -80,7 +88,16 @@ async function sendCast() {
           console.log('Cast sent successfully:', castResponse.data);
         } catch (error) {
           console.error('Error during Pinata lookup or cast submission:', error.message);
-          console.error('Full error details:', error);
+          if (error.response) {
+            console.error('Error response data:', error.response.data);
+            console.error('Error response status:', error.response.status);
+            console.error('Error response headers:', error.response.headers);
+          } else if (error.request) {
+            console.error('Error request:', error.request);
+          } else {
+            console.error('Error message:', error.message);
+          }
+          console.error('Error config:', error.config);
         }
       } else {
         console.log('Goal is not active today');
