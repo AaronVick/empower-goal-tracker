@@ -1,6 +1,6 @@
 const admin = require('firebase-admin');
 const axios = require('axios');
-const protobuf = require('protobufjs');
+const crypto = require('crypto');
 
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
 
@@ -13,29 +13,6 @@ admin.initializeApp({
   }),
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
 });
-
-// Define the protobuf message structure
-const MessageProto = `
-  syntax = "proto3";
-
-  message Message {
-    uint32 type = 1;
-    bytes data = 2;
-    uint32 fid = 3;
-    uint32 network = 4;
-    bytes hash = 5;
-    bytes signature = 6;
-    bytes signer = 7;
-  }
-
-  message CastAddBody {
-    bytes parent_cast_id = 1;
-    repeated uint32 parent_url_ids = 2;
-    string text = 3;
-    repeated uint32 mentions = 4;
-    repeated string embeds = 5;
-  }
-`;
 
 async function sendCast() {
   try {
@@ -72,11 +49,6 @@ async function sendCast() {
       return;
     }
 
-    // Load the protobuf message types
-    const root = protobuf.parse(MessageProto).root;
-    const Message = root.lookupType("Message");
-    const CastAddBody = root.lookupType("CastAddBody");
-
     for (const doc of goalsSnapshot.docs) {
       const goalData = doc.data();
       console.log('Processing goal:', goalData.goal);
@@ -102,40 +74,35 @@ async function sendCast() {
 
           const messageText = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-          console.log('Creating CastAddBody...');
-          const castAddBody = CastAddBody.create({
+          console.log('Creating cast message...');
+          const castMessage = {
             text: messageText,
-            mentions: [parseInt(fid)],
-            embeds: [`${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`]
-          });
-          console.log('CastAddBody created:', castAddBody);
+            embeds: [`${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`],
+            mentions: [parseInt(fid)]
+          };
+          console.log('Cast message created:', castMessage);
 
-          console.log('Encoding CastAddBody...');
-          const castAddBodyBuffer = CastAddBody.encode(castAddBody).finish();
-          console.log('CastAddBody encoded, length:', castAddBodyBuffer.length);
+          const timestamp = Math.floor(Date.now() / 1000);
+          const nonce = crypto.randomBytes(16).toString('hex');
 
-          console.log('Creating Message...');
-          const message = Message.create({
-            type: 1,
-            data: castAddBodyBuffer,
-            fid: parseInt(process.env.WARPCAST_FID),
-            network: 1,
-            hash: Buffer.alloc(32),
-            signature: Buffer.alloc(65),
-            signer: Buffer.from(process.env.WARPCAST_FID, 'hex')
-          });
-          console.log('Message created:', message);
-
-          console.log('Encoding Message...');
-          const messageBuffer = Message.encode(message).finish();
-          console.log('Message encoded, length:', messageBuffer.length);
+          const message = {
+            method: "cast_add",
+            params: {
+              body: castMessage,
+            },
+            id: 1,
+            jsonrpc: "2.0",
+            timestamp: timestamp,
+            nonce: nonce,
+            network: 1
+          };
 
           console.log('Sending cast to Pinata...');
           const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', 
-            messageBuffer,
+            message,
             {
               headers: {
-                'Content-Type': 'application/octet-stream',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
               }
             }
