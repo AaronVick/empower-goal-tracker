@@ -22,14 +22,14 @@ async function sendCast() {
     // Log a confirmation that Firebase was initialized
     console.log("Firebase initialized successfully");
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to midnight for comparison
-    console.log("Today's date:", today.toISOString().split('T')[0]);
+    const today = new Date().toISOString().split('T')[0]; // Format today's date as YYYY-MM-DD
+
+    console.log(`Today's date: ${today}`);
 
     // Fetch active goals from Firebase
     const goalsSnapshot = await db.collection('goals')
-      .where('startDate', '<=', admin.firestore.Timestamp.fromDate(today))
-      .where('endDate', '>=', admin.firestore.Timestamp.fromDate(today))
+      .where('startDate', '<=', today)
+      .where('endDate', '>=', today)
       .get();
 
     if (goalsSnapshot.empty) {
@@ -38,56 +38,54 @@ async function sendCast() {
     }
 
     // Loop through active goals and send casts
-    for (const doc of goalsSnapshot.docs) {
+    goalsSnapshot.forEach(async (doc) => {
       const goalData = doc.data();
-      console.log('Processing goal:', goalData.goal);
-      console.log('Goal start date:', goalData.startDate.toDate().toISOString().split('T')[0]);
-      console.log('Goal end date:', goalData.endDate.toDate().toISOString().split('T')[0]);
+      console.log(`Processing goal: ${goalData.goal}`);
+      console.log(`Goal start date: ${goalData.startDate.toDate().toISOString().split('T')[0]}`);
+      console.log(`Goal end date: ${goalData.endDate.toDate().toISOString().split('T')[0]}`);
+      console.log(`Goal is active today`);
 
-      // Ensure the goal is active today
-      if (goalData.startDate.toDate() <= today && goalData.endDate.toDate() >= today) {
-        console.log('Goal is active today');
+      const fid = goalData.user_id;
+      console.log(`FID for this goal: ${fid}`);
 
-        const fid = goalData.user_id;
-        console.log('FID for this goal:', fid);
+      try {
+        // Perform the FID lookup via Pinata API
+        const pinataResponse = await axios.get(`https://api.pinata.cloud/v3/farcaster/user/${fid}`);
+        const username = pinataResponse.data.username;
+        console.log(`Username found: ${username}`);
 
-        try {
-          // Perform FID lookup using an open API endpoint
-          const pinataResponse = await axios.get(`https://api.pinata.cloud/v3/farcaster/user/${fid}`);
+        // Construct the message
+        const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-          if (pinataResponse.status === 200) {
-            const username = pinataResponse.data.result.username;
-            console.log('Username found:', username);
-
-            // Construct the message
-            const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
-
-            // Send the cast via the Farcaster API
-            const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
-              castAddBody: {
-                text: message,
-              },
-              signerId: process.env.WARPCAST_PRIVATE_KEY
-            }, {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
-              }
-            });
-
-            console.log('Cast sent successfully:', castResponse.data);
-          } else {
-            console.error('FID lookup failed with status:', pinataResponse.status);
+        // Send the cast via the Farcaster API
+        const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
+          castAddBody: {
+            text: message,
+            parent_url: `https://warpcast.com/~/channel/${process.env.EMPOWER_CHANNEL}`,
+            mentions: [fid],
+            mention_positions: [0]
+          },
+          signerId: process.env.WARPCAST_PRIVATE_KEY
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
           }
-        } catch (error) {
-          console.error('Error during Pinata lookup or cast submission:', error.message);
+        });
+
+        console.log('Cast sent successfully:', castResponse.data);
+      } catch (error) {
+        if (error.response) {
+          console.error('Error response data:', error.response.data);
+          console.error('Error response status:', error.response.status);
+        } else {
+          console.error('Error message:', error.message);
         }
-      } else {
-        console.log('Goal is not active today');
+        console.error('Error during Pinata lookup or cast submission:', error);
       }
-    }
+    });
   } catch (error) {
-    console.error('Error occurred during sendCast:', error.message);
+    console.error('Error occurred during sendCast:', error);
   }
 }
 
