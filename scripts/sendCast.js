@@ -1,20 +1,24 @@
 const admin = require('firebase-admin');
 const axios = require('axios');
 
-// Initialize Firebase
+// Log the Firebase project ID to confirm it's being passed correctly
+console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
+
+// Initialize Firebase with the service account details
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
   }),
-  databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`,
+  databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
 });
 
 // Function to send a cast
 async function sendCast() {
   try {
     const db = admin.firestore();
+
     console.log("Firebase initialized successfully");
 
     const today = new Date();
@@ -32,6 +36,7 @@ async function sendCast() {
       return;
     }
 
+    // Loop through active goals and send casts
     for (const doc of goalsSnapshot.docs) {
       const goalData = doc.data();
       console.log('Processing goal:', goalData.goal);
@@ -42,7 +47,7 @@ async function sendCast() {
       console.log('FID for this goal:', fid);
 
       try {
-        // Fetch the display name from Pinata API
+        // Fetch the display name and custody address from Pinata API
         const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
           headers: {
             'Authorization': `Bearer ${process.env.PINATA_JWT}`
@@ -50,18 +55,32 @@ async function sendCast() {
         });
 
         const displayName = response.data.user.display_name;
+        const custodyAddress = response.data.user.custody_address;
         console.log('Display name found:', displayName);
+        console.log('Custody address found:', custodyAddress);
 
-        // Construct the message
-        const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+        // Construct the cast message with the custody address and other required fields
+        const message = {
+          method: "cast_add",
+          params: {
+            body: {
+              text: `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`,
+              embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
+              mentions: [fid],
+            }
+          },
+          id: 1,
+          jsonrpc: "2.0",
+          timestamp: Math.floor(Date.now() / 1000),
+          nonce: Math.random().toString(36).substring(7),
+          network: 1,
+        };
 
         // Send the cast via the Farcaster API
-        const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
-          fid,
-          message
-        }, {
+        const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', message, {
           headers: {
-            'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
+            'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`,
+            'Content-Type': 'application/json'
           }
         });
 
