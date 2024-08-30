@@ -37,8 +37,8 @@ async function sendCast() {
   try {
     const db = admin.firestore();
     const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-    const isoToday = today.toISOString().split('T')[0]; 
+    today.setHours(0, 0, 0, 0);
+    const isoToday = today.toISOString().split('T')[0];
     console.log("Today's date:", isoToday);
 
     const goalsSnapshot = await db.collection('goals')
@@ -74,8 +74,11 @@ async function sendCast() {
 
         console.log(`Display name found: ${displayName}`);
 
+        // Handle undefined supporters array
+        const supportersCount = goalData.supporters ? goalData.supporters.length : 0;
+
         const castMessage = {
-          text: `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`,
+          text: `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${supportersCount} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`,
           embeds: [`${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`],
           mentions: [fid],
         };
