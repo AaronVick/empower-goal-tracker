@@ -22,7 +22,9 @@ export default async function handler(req, res) {
       const goalData = goalDoc.data();
       console.log('Goal data fetched:', goalData);
 
-      const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&fid=${encodeURIComponent(goalData.user_id)}`;
+      // Add a timestamp to force image regeneration
+      const timestamp = Date.now();
+      const imageUrl = `${baseUrl}/api/generateGoalImage?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&fid=${encodeURIComponent(goalData.user_id)}&t=${timestamp}`;
 
       console.log('Generated image URL:', imageUrl);
 
@@ -83,7 +85,9 @@ export default async function handler(req, res) {
         const goalDoc = await goalRef.get();
         const goalData = goalDoc.data();
 
-        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}`;
+        // Add a timestamp to force image regeneration
+        const timestamp = Date.now();
+        const imageUrl = `${baseUrl}/api/generateSupportImage?goal=${encodeURIComponent(goalData.goal)}&fid=${encodeURIComponent(goalData.user_id)}&t=${timestamp}`;
 
         console.log('Generated support image URL:', imageUrl);
 
