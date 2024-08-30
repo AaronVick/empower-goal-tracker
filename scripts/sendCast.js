@@ -30,7 +30,7 @@ const MessageProto = `
 
   message CastAddBody {
     bytes parent_cast_id = 1;
-    repeated uint32 parent_urls = 2;
+    repeated uint32 parent_url_ids = 2;
     string text = 3;
     repeated uint32 mentions = 4;
     repeated string embeds = 5;
@@ -102,30 +102,35 @@ async function sendCast() {
 
           const messageText = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-          // Create the CastAddBody
+          console.log('Creating CastAddBody...');
           const castAddBody = CastAddBody.create({
             text: messageText,
             mentions: [parseInt(fid)],
             embeds: [`${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`]
           });
+          console.log('CastAddBody created:', castAddBody);
 
-          // Encode the CastAddBody
+          console.log('Encoding CastAddBody...');
           const castAddBodyBuffer = CastAddBody.encode(castAddBody).finish();
+          console.log('CastAddBody encoded, length:', castAddBodyBuffer.length);
 
-          // Create the Message
+          console.log('Creating Message...');
           const message = Message.create({
-            type: 1, // Assuming 1 is for CastAdd
+            type: 1,
             data: castAddBodyBuffer,
             fid: parseInt(process.env.WARPCAST_FID),
-            network: 1, // Set network to 1 as expected by the API
-            hash: Buffer.alloc(32), // Placeholder, should be filled with actual hash
-            signature: Buffer.alloc(65), // Placeholder, should be filled with actual signature
+            network: 1,
+            hash: Buffer.alloc(32),
+            signature: Buffer.alloc(65),
             signer: Buffer.from(process.env.WARPCAST_FID, 'hex')
           });
+          console.log('Message created:', message);
 
-          // Encode the Message
+          console.log('Encoding Message...');
           const messageBuffer = Message.encode(message).finish();
+          console.log('Message encoded, length:', messageBuffer.length);
 
+          console.log('Sending cast to Pinata...');
           const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', 
             messageBuffer,
             {
