@@ -1,10 +1,8 @@
 const admin = require('firebase-admin');
 const axios = require('axios');
-const crypto = require('crypto');
 
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
 
-// Initialize Firebase with the service account details
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
@@ -14,40 +12,46 @@ admin.initializeApp({
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
 });
 
+async function getFarcasterProfileName(fid) {
+  console.log(`Fetching profile for FID: ${fid}`);
+  try {
+    const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.PINATA_JWT}`,
+      }
+    });
+
+    console.log(`Response status: ${response.status}`);
+    if (response.data.user) {
+      return response.data.user.display_name;
+    } else {
+      throw new Error('User data not found in response');
+    }
+  } catch (error) {
+    console.error(`Error fetching profile for FID ${fid}:`, error);
+    return null;
+  }
+}
+
 async function sendCast() {
   try {
-    if (!process.env.PINATA_JWT) {
-      throw new Error('PINATA_JWT is not set in the environment variables');
-    }
-    if (!process.env.PINATA_API_KEY || !process.env.PINATA_SECRET) {
-      console.warn('PINATA_API_KEY or PINATA_SECRET is not set. These might be needed for some operations.');
-    }
-
     const db = admin.firestore();
-    console.log("Firebase initialized successfully");
-
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isoToday = today.toISOString().split('T')[0];
+    today.setHours(0, 0, 0, 0); 
+    const isoToday = today.toISOString().split('T')[0]; 
     console.log("Today's date:", isoToday);
 
-    let goalsSnapshot;
-    try {
-      goalsSnapshot = await db.collection('goals')
-        .where('startDate', '<=', admin.firestore.Timestamp.fromDate(today))
-        .where('endDate', '>=', admin.firestore.Timestamp.fromDate(today))
-        .get();
-      
-      console.log(`Found ${goalsSnapshot.size} active goals`);
-    } catch (error) {
-      console.error('Error fetching goals from Firebase:', error);
-      throw error;
-    }
+    const goalsSnapshot = await db.collection('goals')
+      .where('startDate', '<=', admin.firestore.Timestamp.fromDate(today))
+      .where('endDate', '>=', admin.firestore.Timestamp.fromDate(today))
+      .get();
 
-    if (!goalsSnapshot || goalsSnapshot.empty) {
+    if (goalsSnapshot.empty) {
       console.log('No active goals found for today');
       return;
     }
+
+    console.log(`Found ${goalsSnapshot.size} active goals`);
 
     for (const doc of goalsSnapshot.docs) {
       const goalData = doc.data();
@@ -61,80 +65,47 @@ async function sendCast() {
         const fid = goalData.user_id;
         console.log('FID for this goal:', fid);
 
+        const displayName = await getFarcasterProfileName(fid);
+
+        if (!displayName) {
+          console.log(`No display name found for FID: ${fid}`);
+          continue;
+        }
+
+        console.log(`Display name found: ${displayName}`);
+
+        const castMessage = {
+          text: `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`,
+          embeds: [`${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`],
+          mentions: [fid],
+        };
+
+        console.log('Creating cast message...');
+        console.log('Cast message created:', castMessage);
+
         try {
-          const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
+          console.log('Sending cast to Pinata...');
+          const castResponse = await axios.post('https://api.pinata.cloud/v3/farcaster/casts', {
+            castAddBody: castMessage,
+            signerId: process.env.WARPCAST_FID,
+          }, {
             headers: {
-              'Authorization': `Bearer ${process.env.PINATA_JWT}`,
-              'x-api-key': process.env.PINATA_API_KEY
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${process.env.PINATA_JWT}`,
             }
           });
 
-          const displayName = response.data.user.display_name;
-          console.log('Display name found:', displayName);
-
-          const messageText = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
-
-          console.log('Creating cast message...');
-          const castMessage = {
-            text: messageText,
-            embeds: [`${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`],
-            mentions: [parseInt(fid)]
-          };
-          console.log('Cast message created:', castMessage);
-
-          const timestamp = Math.floor(Date.now() / 1000);
-          const nonce = crypto.randomBytes(16).toString('hex');
-
-          const message = {
-            method: "cast_add",
-            params: {
-              body: castMessage,
-            },
-            id: 1,
-            jsonrpc: "2.0",
-            timestamp: timestamp,
-            nonce: nonce,
-            network: 1
-          };
-
-          console.log('Sending cast to Pinata...');
-          const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', 
-            message,
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
-              }
-            }
-          );
-
           console.log('Cast sent successfully:', castResponse.data);
         } catch (error) {
-          console.error('Error during Pinata lookup or cast submission:', error.message);
-          if (error.response) {
-            console.error('Error response data:', error.response.data);
-            console.error('Error response status:', error.response.status);
-            console.error('Error response headers:', error.response.headers);
-          } else if (error.request) {
-            console.error('Error request:', error.request);
-          } else {
-            console.error('Error message:', error.message);
-          }
-          console.error('Error config:', error.config);
+          console.error('Error during Pinata lookup or cast submission:', error.response ? error.response.data : error.message);
         }
       } else {
         console.log('Goal is not active today');
       }
     }
   } catch (error) {
-    console.error('Error occurred during sendCast:', error);
+    console.error('Error occurred during sendCast:', error.message);
   }
 }
 
-sendCast().then(() => {
-  console.log('SendCast execution completed');
-  process.exit(0);
-}).catch((error) => {
-  console.error('SendCast execution failed:', error);
-  process.exit(1);
-});
+sendCast();
