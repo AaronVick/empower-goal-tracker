@@ -24,8 +24,7 @@ async function sendCast() {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to midnight for comparison
-    const isoToday = today.toISOString().split('T')[0]; // Format today's date as YYYY-MM-DD
-    console.log("Today's date:", isoToday);
+    console.log("Today's date:", today.toISOString().split('T')[0]);
 
     // Fetch active goals from Firebase
     const goalsSnapshot = await db.collection('goals')
@@ -53,31 +52,33 @@ async function sendCast() {
         console.log('FID for this goal:', fid);
 
         try {
-          // Lookup username via Pinata API using similar logic to generateGoalImage.js
-          const pinataResponse = await axios.get(`https://api.pinata.cloud/v3/farcaster/user/${fid}`, {
-            headers: {
-              'Authorization': `Bearer ${process.env.PINATA_JWT}`
-            }
-          });
+          // Perform FID lookup using an open API endpoint
+          const pinataResponse = await axios.get(`https://api.pinata.cloud/v3/farcaster/user/${fid}`);
 
-          const username = pinataResponse.data.result.username;
-          console.log('Username found:', username);
+          if (pinataResponse.status === 200) {
+            const username = pinataResponse.data.result.username;
+            console.log('Username found:', username);
 
-          // Construct the message
-          const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+            // Construct the message
+            const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-          // Send the cast via the Farcaster API
-          const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
-            fid,
-            message
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
-            }
-          });
+            // Send the cast via the Farcaster API
+            const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
+              castAddBody: {
+                text: message,
+              },
+              signerId: process.env.WARPCAST_PRIVATE_KEY
+            }, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
+              }
+            });
 
-          console.log('Cast sent successfully:', castResponse.data);
+            console.log('Cast sent successfully:', castResponse.data);
+          } else {
+            console.error('FID lookup failed with status:', pinataResponse.status);
+          }
         } catch (error) {
           console.error('Error during Pinata lookup or cast submission:', error.message);
         }
