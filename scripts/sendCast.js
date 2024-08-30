@@ -53,6 +53,7 @@ async function sendCast() {
         console.log('FID for this goal:', fid);
 
         try {
+          console.log(`Attempting to lookup username for FID: ${fid}`);
           // Perform the FID lookup via Pinata API using correct logic
           const pinataResponse = await axios.get(`https://api.pinata.cloud/v3/farcaster/user/${fid}`, {
             headers: {
@@ -60,26 +61,35 @@ async function sendCast() {
             }
           });
 
-          const username = pinataResponse.data.result.username;
-          console.log('Username found:', username);
+          console.log('Pinata lookup response:', pinataResponse.data);
 
-          // Construct the message
-          const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+          if (pinataResponse.data && pinataResponse.data.result && pinataResponse.data.result.username) {
+            const username = pinataResponse.data.result.username;
+            console.log('Username found:', username);
 
-          // Send the cast via the Farcaster API
-          const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
-            fid,
-            message
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
-            }
-          });
+            // Construct the message
+            const message = `@${username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters.length} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-          console.log('Cast sent successfully:', castResponse.data);
+            console.log('Constructed message:', message);
+
+            // Send the cast via the Farcaster API
+            const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', {
+              fid,
+              message
+            }, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
+              }
+            });
+
+            console.log('Cast sent successfully:', castResponse.data);
+          } else {
+            console.log('No username found in Pinata response');
+          }
         } catch (error) {
           console.error('Error during Pinata lookup or cast submission:', error.message);
+          console.error('Full error details:', error);
         }
       } else {
         console.log('Goal is not active today');
