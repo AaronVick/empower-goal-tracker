@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const axios = require('axios');
+const protobuf = require('protobufjs');
 
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
 
@@ -12,6 +13,15 @@ admin.initializeApp({
   }),
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
 });
+
+// Define the protobuf message structure
+const MessageProto = `
+  syntax = "proto3";
+  message Message {
+    uint32 type = 1;
+    bytes data = 2;
+  }
+`;
 
 async function sendCast() {
   try {
@@ -40,13 +50,17 @@ async function sendCast() {
       console.log(`Found ${goalsSnapshot.size} active goals`);
     } catch (error) {
       console.error('Error fetching goals from Firebase:', error);
-      throw error; // Re-throw the error to be caught in the outer catch block
+      throw error;
     }
 
     if (goalsSnapshot.empty) {
       console.log('No active goals found for today');
       return;
     }
+
+    // Load the protobuf message type
+    const root = protobuf.parse(MessageProto).root;
+    const Message = root.lookupType("Message");
 
     for (const doc of goalsSnapshot.docs) {
       const goalData = doc.data();
@@ -73,14 +87,14 @@ async function sendCast() {
 
           const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
+          // Create the protobuf message
+          const messageBuffer = Message.encode({
+            type: 1, // Assuming 1 is for text messages
+            data: Buffer.from(message, 'utf8')
+          }).finish();
+
           const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', 
-            JSON.stringify({
-              fid: parseInt(process.env.WARPCAST_FID),
-              message: {
-                type: 1,
-                data: Buffer.from(message).toString('hex')
-              }
-            }),
+            messageBuffer,
             {
               headers: {
                 'Content-Type': 'application/octet-stream',
