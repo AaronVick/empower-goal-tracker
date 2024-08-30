@@ -43,60 +43,111 @@ const MessageProto = `
 
 async function sendCast() {
   try {
-    // ... (previous code for checking environment variables and fetching goals remains the same)
+    if (!process.env.PINATA_JWT) {
+      throw new Error('PINATA_JWT is not set in the environment variables');
+    }
+    if (!process.env.PINATA_API_KEY || !process.env.PINATA_SECRET) {
+      console.warn('PINATA_API_KEY or PINATA_SECRET is not set. These might be needed for some operations.');
+    }
+
+    const db = admin.firestore();
+    console.log("Firebase initialized successfully");
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isoToday = today.toISOString().split('T')[0];
+    console.log("Today's date:", isoToday);
+
+    let goalsSnapshot;
+    try {
+      goalsSnapshot = await db.collection('goals')
+        .where('startDate', '<=', admin.firestore.Timestamp.fromDate(today))
+        .where('endDate', '>=', admin.firestore.Timestamp.fromDate(today))
+        .get();
+      
+      console.log(`Found ${goalsSnapshot.size} active goals`);
+    } catch (error) {
+      console.error('Error fetching goals from Firebase:', error);
+      throw error;
+    }
+
+    if (!goalsSnapshot || goalsSnapshot.empty) {
+      console.log('No active goals found for today');
+      return;
+    }
 
     // Load the protobuf message type
     const root = protobuf.parse(MessageProto).root;
     const Message = root.lookupType("Message");
 
     for (const doc of goalsSnapshot.docs) {
-      // ... (previous code for processing each goal remains the same)
+      const goalData = doc.data();
+      console.log('Processing goal:', goalData.goal);
+      console.log('Goal start date:', goalData.startDate.toDate().toISOString());
+      console.log('Goal end date:', goalData.endDate.toDate().toISOString());
 
-      try {
-        // ... (previous code for fetching display name remains the same)
+      if (goalData.startDate.toDate() <= today && goalData.endDate.toDate() >= today) {
+        console.log('Goal is active today');
 
-        const messageText = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+        const fid = goalData.user_id;
+        console.log('FID for this goal:', fid);
 
-        // Create the protobuf message
-        const messageBuffer = Message.encode({
-          castAddBody: {
-            text: messageText,
-            mentions: [parseInt(fid)],
-            embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }]
-          },
-          hash: Buffer.alloc(32), // Placeholder, should be filled with actual hash
-          signature: Buffer.alloc(65), // Placeholder, should be filled with actual signature
-          signer: Buffer.from(process.env.WARPCAST_FID, 'hex'),
-          data: Buffer.alloc(0) // Optional, can be left empty
-        }).finish();
-
-        const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', 
-          messageBuffer,
-          {
+        try {
+          const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
             headers: {
-              'Content-Type': 'application/octet-stream',
-              'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
+              'Authorization': `Bearer ${process.env.PINATA_JWT}`,
+              'x-api-key': process.env.PINATA_API_KEY
             }
-          }
-        );
+          });
 
-        console.log('Cast sent successfully:', castResponse.data);
-      } catch (error) {
-        console.error('Error during Pinata lookup or cast submission:', error.message);
-        if (error.response) {
-          console.error('Error response data:', error.response.data);
-          console.error('Error response status:', error.response.status);
-          console.error('Error response headers:', error.response.headers);
-        } else if (error.request) {
-          console.error('Error request:', error.request);
-        } else {
-          console.error('Error message:', error.message);
+          const displayName = response.data.user.display_name;
+          console.log('Display name found:', displayName);
+
+          const messageText = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+
+          // Create the protobuf message
+          const messageBuffer = Message.encode({
+            castAddBody: {
+              text: messageText,
+              mentions: [parseInt(fid)],
+              embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }]
+            },
+            hash: Buffer.alloc(32), // Placeholder, should be filled with actual hash
+            signature: Buffer.alloc(65), // Placeholder, should be filled with actual signature
+            signer: Buffer.from(process.env.WARPCAST_FID, 'hex'),
+            data: Buffer.alloc(0) // Optional, can be left empty
+          }).finish();
+
+          const castResponse = await axios.post('https://hub.pinata.cloud/v1/submitMessage', 
+            messageBuffer,
+            {
+              headers: {
+                'Content-Type': 'application/octet-stream',
+                'Authorization': `Bearer ${process.env.WARPCAST_PRIVATE_KEY}`
+              }
+            }
+          );
+
+          console.log('Cast sent successfully:', castResponse.data);
+        } catch (error) {
+          console.error('Error during Pinata lookup or cast submission:', error.message);
+          if (error.response) {
+            console.error('Error response data:', error.response.data);
+            console.error('Error response status:', error.response.status);
+            console.error('Error response headers:', error.response.headers);
+          } else if (error.request) {
+            console.error('Error request:', error.request);
+          } else {
+            console.error('Error message:', error.message);
+          }
+          console.error('Error config:', error.config);
         }
-        console.error('Error config:', error.config);
+      } else {
+        console.log('Goal is not active today');
       }
     }
   } catch (error) {
-    console.error('Error occurred during sendCast:', error.message);
+    console.error('Error occurred during sendCast:', error);
   }
 }
 
