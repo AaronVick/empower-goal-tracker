@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
-const axios = require('axios');
+const { FarcasterNetwork, getInsecureHubRpcClient, makeCastAdd, NobleEd25519Signer } = require('@farcaster/hub-nodejs');
+const { hexToBytes } = require('@noble/hashes/utils');
 
 // Log the Firebase project ID to confirm it's being passed correctly
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
@@ -36,62 +37,38 @@ async function sendCast() {
       return;
     }
 
+    // Set up Farcaster signer
+    const privateKeyBytes = hexToBytes(process.env.WARPCAST_PRIVATE_KEY.slice(2));
+    const ed25519Signer = new NobleEd25519Signer(privateKeyBytes);
+
+    const dataOptions = {
+      fid: parseInt(process.env.WARPCAST_FID),
+      network: FarcasterNetwork.MAINNET,  // Use MAINNET instead of TESTNET
+    };
+
     // Loop through active goals and send casts
     for (const doc of goalsSnapshot.docs) {
       const goalData = doc.data();
       console.log('Processing goal:', goalData.goal);
-      console.log('Goal start date:', goalData.startDate.toDate());
-      console.log('Goal end date:', goalData.endDate.toDate());
 
-      const fid = goalData.user_id;
-      console.log('FID for this goal:', fid);
+      // Construct the cast message
+      const message = `@${goalData.user_name} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-      try {
-        // Fetch the display name and custody address from Pinata API
-        const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
-          headers: {
-            'Authorization': `Bearer ${process.env.PINATA_JWT}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        const displayName = response.data.user.display_name;
-        const custodyAddress = response.data.user.custody_address;
-
-        console.log('Display name found:', displayName);
-        console.log('Custody address found:', custodyAddress);
-
-        // Construct the cast message
-        const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
-
-        const castAddBody = {
+      const cast = await makeCastAdd(
+        {
           text: message,
           embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
-          mentions: [fid]
-        };
+          mentions: [parseInt(goalData.user_id)]
+        },
+        dataOptions,
+        ed25519Signer
+      );
 
-        const requestBody = JSON.stringify({
-          castAddBody: castAddBody,
-          signerId: custodyAddress,
-        });
+      // Submit the cast to the Farcaster network
+      const client = getInsecureHubRpcClient('farcaster.xyz:2283');  // Mainnet Hub URL
+      const result = await client.submitMessage(cast._unsafeUnwrap());
 
-        // Send the cast via the Farcaster API
-        const castResponse = await axios.post('https://api.pinata.cloud/v3/farcaster/casts', requestBody, {
-          headers: {
-            'Authorization': `Bearer ${process.env.PINATA_JWT}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        console.log('Cast sent successfully:', castResponse.data);
-      } catch (error) {
-        console.error('Error during Pinata lookup or cast submission:', error.message);
-        if (error.response) {
-          console.error('Error response data:', error.response.data);
-          console.error('Error response status:', error.response.status);
-          console.error('Error response headers:', error.response.headers);
-        }
-      }
+      console.log('Cast sent successfully:', result);
     }
   } catch (error) {
     console.error('Error occurred during sendCast:', error.message);
