@@ -22,7 +22,7 @@ jobs:
         run: npm install
 
       - name: Run the cast script
-        run: node sendCast.js  # Ensure it runs the sendCast.js file
+        run: node scripts/sendCast.js  # Ensure it runs the sendCast.js file
         env:
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
