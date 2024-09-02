@@ -54,11 +54,16 @@ async function sendCast() {
       // Construct the cast message
       const message = `@${goalData.user_name} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
+      const mentionIndex = message.indexOf(`@${goalData.user_name}`);
+      const mentions = [parseInt(goalData.user_id)];
+      const mentionsPositions = [mentionIndex];
+
       const castResult = await makeCastAdd(
         {
           text: message,
           embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
-          mentions: [parseInt(goalData.user_id)]
+          mentions,
+          mentionsPositions
         },
         dataOptions,
         ed25519Signer
