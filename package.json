@@ -10,7 +10,8 @@
     "next": "^14.2.6",
     "protobufjs": "^7.4.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@farcaster/hub-nodejs": "^x.x.x"
   },
   "scripts": {
     "dev": "next dev",
