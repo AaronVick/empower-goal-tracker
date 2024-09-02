@@ -54,7 +54,7 @@ async function sendCast() {
       // Construct the cast message
       const message = `@${goalData.user_name} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-      const cast = await makeCastAdd(
+      const castResult = await makeCastAdd(
         {
           text: message,
           embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
@@ -64,11 +64,23 @@ async function sendCast() {
         ed25519Signer
       );
 
+      if (castResult.isErr()) {
+        console.error('Error creating cast:', castResult.error);
+        continue;  // Skip to the next goal if there's an error
+      }
+
+      const cast = castResult.value;
+
       // Submit the cast to the Farcaster network
       const client = getInsecureHubRpcClient('farcaster.xyz:2283');  // Mainnet Hub URL
-      const result = await client.submitMessage(cast._unsafeUnwrap());
+      const submitResult = await client.submitMessage(cast);
 
-      console.log('Cast sent successfully:', result);
+      if (submitResult.isErr()) {
+        console.error('Error submitting cast:', submitResult.error);
+        continue;
+      }
+
+      console.log('Cast sent successfully:', submitResult.value);
     }
   } catch (error) {
     console.error('Error occurred during sendCast:', error.message);
