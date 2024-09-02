@@ -2,10 +2,8 @@ const admin = require('firebase-admin');
 const { FarcasterNetwork, getInsecureHubRpcClient, makeCastAdd, NobleEd25519Signer } = require('@farcaster/hub-nodejs');
 const { hexToBytes } = require('@noble/hashes/utils');
 
-// Log the Firebase project ID to confirm it's being passed correctly
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
 
-// Initialize Firebase with the service account details
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
@@ -15,7 +13,6 @@ admin.initializeApp({
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
 });
 
-// Function to send a cast
 async function sendCast() {
   try {
     const db = admin.firestore();
@@ -23,10 +20,9 @@ async function sendCast() {
     console.log("Firebase initialized successfully");
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to midnight for comparison
+    today.setHours(0, 0, 0, 0);
     console.log("Today's date:", today);
 
-    // Fetch active goals from Firebase
     const goalsSnapshot = await db.collection('goals')
       .where('startDate', '<=', admin.firestore.Timestamp.fromDate(today))
       .where('endDate', '>=', admin.firestore.Timestamp.fromDate(today))
@@ -37,21 +33,22 @@ async function sendCast() {
       return;
     }
 
-    // Set up Farcaster signer
     const privateKeyBytes = hexToBytes(process.env.WARPCAST_PRIVATE_KEY.slice(2));
     const ed25519Signer = new NobleEd25519Signer(privateKeyBytes);
 
     const dataOptions = {
       fid: parseInt(process.env.WARPCAST_FID),
-      network: FarcasterNetwork.MAINNET,  // Use MAINNET instead of TESTNET
+      network: FarcasterNetwork.MAINNET,
     };
 
-    // Loop through active goals and send casts
+    const hubAddresses = [
+      'nemes.farcaster.xyz:2282'
+    ];
+
     for (const doc of goalsSnapshot.docs) {
       const goalData = doc.data();
       console.log('Processing goal:', goalData.goal);
 
-      // Construct the cast message
       const message = `@${goalData.user_name} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
       const mentionIndex = message.indexOf(`@${goalData.user_name}`);
@@ -71,26 +68,31 @@ async function sendCast() {
 
       if (castResult.isErr()) {
         console.error('Error creating cast:', castResult.error);
-        continue;  // Skip to the next goal if there's an error
+        continue;
       }
 
       const cast = castResult.value;
 
-      // Submit the cast to the Farcaster network
-      const client = getInsecureHubRpcClient('farcaster.xyz:2283');  // Mainnet Hub URL
-      const submitResult = await client.submitMessage(cast);
+      for (const hubAddress of hubAddresses) {
+        console.log(`Attempting to connect to hub: ${hubAddress}`);
+        const client = getInsecureHubRpcClient(hubAddress);
 
-      if (submitResult.isErr()) {
-        console.error('Error submitting cast:', submitResult.error);
-        continue;
+        try {
+          const submitResult = await client.submitMessage(cast);
+          if (submitResult.isOk()) {
+            console.log('Cast sent successfully to hub:', hubAddress);
+            break;
+          } else {
+            console.error('Error submitting cast:', submitResult.error);
+          }
+        } catch (error) {
+          console.error(`Failed to submit cast to hub: ${hubAddress}`, error.message);
+        }
       }
-
-      console.log('Cast sent successfully:', submitResult.value);
     }
   } catch (error) {
     console.error('Error occurred during sendCast:', error.message);
   }
 }
 
-// Execute the sendCast function
 sendCast();
