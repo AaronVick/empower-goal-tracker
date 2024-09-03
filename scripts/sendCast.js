@@ -131,9 +131,16 @@ async function sendCast() {
 
         console.log('User data fetched successfully:', userData);
 
-        // Construct the cast message
-        const message = `@${userData.username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!`;
-        const embedUrl = `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+        // Construct the cast message based on the number of supporters
+        const supportersCount = goalData.supporters ? goalData.supporters.length : 0;
+        let message;
+        if (supportersCount === 0) {
+          message = `@${userData.username} You've got this!`;
+        } else {
+          message = `@${userData.username} you're being supported on your goal, "${goalData.goal}", by ${supportersCount} supporter${supportersCount > 1 ? 's' : ''}! Keep up the great work!`;
+        }
+
+        const embedUrl = `https://empower-goal-tracker.vercel.app/api/goalShare?id=${doc.id}`;
 
         // Send the cast via the Neynar API
         console.log('Sending cast to Neynar...');
