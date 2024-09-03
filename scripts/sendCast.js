@@ -57,6 +57,7 @@ async function sendCast() {
 
       try {
         // Fetch the display name and custody address using Pinata's open API
+        console.log('Attempting to fetch display name and custody address from Pinata...');
         const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
           headers: {
             'Content-Type': 'application/json'
@@ -78,9 +79,10 @@ async function sendCast() {
         const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
         // Use the channel URL from your provided details
-        const empowerChannelUrl = process.env.EMPOWER_CHANNEL_URL; // Ensure this is set as an env variable
+        const empowerChannelUrl = process.env.EMPOWER_CHANNEL_URL;
 
         // Send the cast via the Neynar API
+        console.log('Attempting to cast to Neynar...');
         const result = await neynarClient.publishCast(signer, message, {
           embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
           replyTo: empowerChannelUrl,
@@ -88,7 +90,13 @@ async function sendCast() {
 
         console.log('Cast sent successfully:', result);
       } catch (error) {
-        console.error('Error during Pinata lookup or Neynar cast submission:', error.message);
+        if (error.response && error.response.status === 401) {
+          console.error('Unauthorized access - 401 Error:', error.message);
+        } else if (error.response) {
+          console.error('Error during API call:', error.response.data);
+        } else {
+          console.error('Error during Pinata lookup or Neynar cast submission:', error.message);
+        }
       }
     }
   } catch (error) {
