@@ -4,6 +4,9 @@ const { NeynarAPIClient } = require("@neynar/nodejs-sdk");
 // Log the Firebase project ID to confirm it's being passed correctly
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
 
+// Log the NEYNAR_API key to ensure it's being passed correctly
+console.log("NEYNAR_API Key:", process.env.NEYNAR_API);
+
 // Initialize Firebase with the service account details
 admin.initializeApp({
   credential: admin.credential.cert({
@@ -36,6 +39,11 @@ async function sendCast() {
     }
 
     // Initialize Neynar API Client
+    if (!process.env.NEYNAR_API) {
+      console.error("Error: NEYNAR_API key is missing or undefined.");
+      return;
+    }
+
     const client = new NeynarAPIClient(process.env.NEYNAR_API);
 
     // Loop through active goals and send casts
@@ -51,6 +59,11 @@ async function sendCast() {
       try {
         // Fetch the user info from Neynar API
         const user = await client.lookupUserByFid(fid);
+
+        if (!user) {
+          console.error(`Error: No user found for FID ${fid}`);
+          continue;
+        }
 
         const displayName = user.username;
         const custodyAddress = user.custody_address;
