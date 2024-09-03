@@ -63,7 +63,7 @@ async function sendCastToNeynar(signerUuid, text, parentUrl, channelId, embedUrl
       text: text,
       parent: parentUrl,
       channel_id: channelId,
-      embeds: [embedUrl]
+      embeds: embedUrl ? [{ url: embedUrl }] : undefined
     }, {
       headers: {
         'accept': 'application/json',
