@@ -9,7 +9,7 @@ const NEYNAR_API = 'https://api.neynar.com/v2/farcaster/cast';
 // Log all relevant environment variables (excluding sensitive data)
 console.log('Environment variables check:');
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
-console.log('NEYNAR_API_KEY set:', !!process.env.NEYNAR_API);
+console.log('NEYNAR_API set:', !!process.env.NEYNAR_API);
 console.log('NEYNAR_SIGNER set:', !!process.env.NEYNAR_SIGNER);
 console.log('EMPOWER_CHANNEL_URL set:', !!process.env.EMPOWER_CHANNEL_URL);
 console.log('NEXT_PUBLIC_BASE_PATH:', process.env.NEXT_PUBLIC_BASE_PATH);
@@ -56,14 +56,14 @@ async function getUserDataByFid(fid) {
 }
 
 // Function to send a cast using Neynar API
-async function sendCastToNeynar(signerUuid, text, parentUrl, channelId) {
+async function sendCastToNeynar(signerUuid, text, parentUrl, channelId, embedUrl) {
   try {
     const response = await axios.post(NEYNAR_API, {
       signer_uuid: signerUuid,
       text: text,
       parent: parentUrl,
       channel_id: channelId,
-      embeds: [`${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`]
+      embeds: [embedUrl]
     }, {
       headers: {
         'accept': 'application/json',
@@ -132,19 +132,22 @@ async function sendCast() {
         console.log('User data fetched successfully:', userData);
 
         // Construct the cast message
-        const message = `@${userData.username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+        const message = `@${userData.username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!`;
+        const embedUrl = `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
         // Send the cast via the Neynar API
         console.log('Sending cast to Neynar...');
         console.log('Message:', message);
         console.log('Signer UUID:', process.env.NEYNAR_SIGNER);
         console.log('Channel URL:', process.env.EMPOWER_CHANNEL_URL);
+        console.log('Embed URL:', embedUrl);
 
         const result = await sendCastToNeynar(
           process.env.NEYNAR_SIGNER,
           message,
           process.env.EMPOWER_CHANNEL_URL,
-          'empower'
+          'empower',
+          embedUrl
         );
 
         console.log('Cast sent successfully. Neynar API response:', JSON.stringify(result, null, 2));
