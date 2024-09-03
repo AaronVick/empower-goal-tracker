@@ -50,8 +50,23 @@ export default async function handler(req, res) {
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
-    const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
-    const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to midnight for comparison
+
+    const goalsQueryNum = db.collection("goals")
+      .where("user_id", "==", Number(fid))
+      .where("startDate", "<=", today)
+      .where("endDate", ">=", today);
+
+    const goalsQueryStr = db.collection("goals")
+      .where("user_id", "==", fid.toString())
+      .where("startDate", "<=", today)
+      .where("endDate", ">=", today);
+
+    const [goalsSnapshotNum, goalsSnapshotStr] = await Promise.all([
+      goalsQueryNum.get(),
+      goalsQueryStr.get()
+    ]);
 
     console.log('Query completed (number). Empty?', goalsSnapshotNum.empty, 'Size:', goalsSnapshotNum.size);
     console.log('Query completed (string). Empty?', goalsSnapshotStr.empty, 'Size:', goalsSnapshotStr.size);
@@ -59,8 +74,8 @@ export default async function handler(req, res) {
     let goalsSnapshot = goalsSnapshotNum.empty ? goalsSnapshotStr : goalsSnapshotNum;
 
     if (goalsSnapshot.empty) {
-      console.log('No goals found for FID:', fid);
-      const noGoalImageUrl = createReviewOGImage("No goals set yet", "", "");
+      console.log('No active goals found for FID:', fid);
+      const noGoalImageUrl = createReviewOGImage("No active goals", "", "");
 
       const html = `
         <!DOCTYPE html>
@@ -73,13 +88,13 @@ export default async function handler(req, res) {
           </head>
         </html>
       `;
-      console.log('Sending HTML response for no goals');
+      console.log('Sending HTML response for no active goals');
       return res.setHeader('Content-Type', 'text/html').status(200).send(html);
     }
 
     const goals = goalsSnapshot.docs.map(doc => doc.data());
-    console.log(`Found ${goals.length} goals for FID:`, fid);
-    console.log('All goals data:', JSON.stringify(goals));
+    console.log(`Found ${goals.length} active goals for FID:`, fid);
+    console.log('All active goals data:', JSON.stringify(goals));
 
     const totalGoals = goals.length;
 
@@ -112,7 +127,7 @@ export default async function handler(req, res) {
         </head>
       </html>
     `;
-    console.log('Sending HTML response for existing goals');
+    console.log('Sending HTML response for existing active goals');
     return res.setHeader('Content-Type', 'text/html').status(200).send(html);
 
   } catch (error) {
