@@ -31,4 +31,4 @@ jobs:
           FIREBASE_TYPE: ${{ secrets.FIREBASE_TYPE }}
           WARPCAST_PRIVATE_KEY: ${{ secrets.WARPCAST_PRIVATE_KEY }}
           WARPCAST_FID: ${{ secrets.WARPCAST_FID }}
-          NEYNAR_API_KEY: ${{ secrets.NEYNAR_API }}  # Updated to use Neynar API Key
+          NEYNAR_API: ${{ secrets.NEYNAR_API }}  # Updated to use Neynar API Key
