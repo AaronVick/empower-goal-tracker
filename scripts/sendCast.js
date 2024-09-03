@@ -1,15 +1,15 @@
 const admin = require('firebase-admin');
 const axios = require('axios');
-const { NeynarAPIClient } = require("@neynar/nodejs-sdk");
 
 console.log('Starting sendCast script...');
 
 const PINATA_HUB_API = 'https://hub.pinata.cloud/v1';
+const NEYNAR_API = 'https://api.neynar.com/v2/farcaster/cast';
 
 // Log all relevant environment variables (excluding sensitive data)
 console.log('Environment variables check:');
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
-console.log('NEYNAR_API set:', !!process.env.NEYNAR_API);
+console.log('NEYNAR_API_KEY set:', !!process.env.NEYNAR_API);
 console.log('NEYNAR_SIGNER set:', !!process.env.NEYNAR_SIGNER);
 console.log('EMPOWER_CHANNEL_URL set:', !!process.env.EMPOWER_CHANNEL_URL);
 console.log('NEXT_PUBLIC_BASE_PATH:', process.env.NEXT_PUBLIC_BASE_PATH);
@@ -55,6 +55,29 @@ async function getUserDataByFid(fid) {
   }
 }
 
+// Function to send a cast using Neynar API
+async function sendCastToNeynar(signerUuid, text, parentUrl, channelId) {
+  try {
+    const response = await axios.post(NEYNAR_API, {
+      signer_uuid: signerUuid,
+      text: text,
+      parent: parentUrl,
+      channel_id: channelId,
+      embeds: [`${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`]
+    }, {
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api_key': process.env.NEYNAR_API
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending cast to Neynar:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
 // Function to send a cast
 async function sendCast() {
   let successfulCasts = 0;
@@ -80,23 +103,9 @@ async function sendCast() {
       return;
     }
 
-    // Initialize Neynar API Client
-    if (!process.env.NEYNAR_API) {
-      console.error("Error: NEYNAR_API is missing or undefined.");
-      return;
-    }
-
-    const neynarClient = new NeynarAPIClient(process.env.NEYNAR_API);
-    const signer = process.env.NEYNAR_SIGNER;
-
-    if (!signer) {
-      console.error("Error: NEYNAR_SIGNER is missing or undefined.");
-      return;
-    }
-
-    // Check if NEXT_PUBLIC_BASE_PATH is set
-    if (!process.env.NEXT_PUBLIC_BASE_PATH) {
-      console.error("Error: NEXT_PUBLIC_BASE_PATH is not set.");
+    // Check if required environment variables are set
+    if (!process.env.NEYNAR_API || !process.env.NEYNAR_SIGNER || !process.env.EMPOWER_CHANNEL_URL || !process.env.NEXT_PUBLIC_BASE_PATH) {
+      console.error("Error: One or more required environment variables are missing.");
       return;
     }
 
@@ -125,19 +134,18 @@ async function sendCast() {
         // Construct the cast message
         const message = `@${userData.username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-        // Use the channel URL from your provided details
-        const empowerChannelUrl = process.env.EMPOWER_CHANNEL_URL;
-
         // Send the cast via the Neynar API
         console.log('Sending cast to Neynar...');
         console.log('Message:', message);
-        console.log('Signer:', signer);
-        console.log('Channel URL:', empowerChannelUrl);
+        console.log('Signer UUID:', process.env.NEYNAR_SIGNER);
+        console.log('Channel URL:', process.env.EMPOWER_CHANNEL_URL);
 
-        const result = await neynarClient.publishCast(signer, message, {
-          embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
-          replyTo: empowerChannelUrl,
-        });
+        const result = await sendCastToNeynar(
+          process.env.NEYNAR_SIGNER,
+          message,
+          process.env.EMPOWER_CHANNEL_URL,
+          'empower'
+        );
 
         console.log('Cast sent successfully. Neynar API response:', JSON.stringify(result, null, 2));
         successfulCasts++;
@@ -148,9 +156,6 @@ async function sendCast() {
       } catch (error) {
         failedCasts++;
         console.error('Error processing goal or sending cast:', error.message);
-        if (error.response) {
-          console.error('Error response:', error.response.data);
-        }
       }
     }
   } catch (error) {
