@@ -1,11 +1,9 @@
 const admin = require('firebase-admin');
+const axios = require('axios');
 const { NeynarAPIClient } = require("@neynar/nodejs-sdk");
 
 // Log the Firebase project ID to confirm it's being passed correctly
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
-
-// Log the NEYNAR_API key to ensure it's being passed correctly
-console.log("NEYNAR_API Key:", process.env.NEYNAR_API);
 
 // Initialize Firebase with the service account details
 admin.initializeApp({
@@ -44,7 +42,7 @@ async function sendCast() {
       return;
     }
 
-    const client = new NeynarAPIClient(process.env.NEYNAR_API);
+    const neynarClient = new NeynarAPIClient(process.env.NEYNAR_API);
 
     // Loop through active goals and send casts
     for (const doc of goalsSnapshot.docs) {
@@ -57,19 +55,23 @@ async function sendCast() {
       console.log('FID for this goal:', fid);
 
       try {
-        // Fetch the user info from Neynar API
-        const user = await client.lookupUserByFid(fid);
+        // Fetch the display name and custody address using Pinata's open API
+        const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
 
-        if (!user) {
-          console.error(`Error: No user found for FID ${fid}`);
-          continue;
-        }
-
-        const displayName = user.username;
-        const custodyAddress = user.custody_address;
+        const displayName = response.data.user.display_name;
+        const custodyAddress = response.data.user.custody_address;
 
         console.log('Display name found:', displayName);
         console.log('Custody address found:', custodyAddress);
+
+        if (!displayName || !custodyAddress) {
+          console.error('Error: Display name or custody address not found.');
+          continue;
+        }
 
         // Construct the cast message
         const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
@@ -77,14 +79,14 @@ async function sendCast() {
         const memesChannelUrl = "chain://eip155:1/erc721:0xfd8427165df67df6d7fd689ae67c8ebf56d9ca61";  // Replace with your channel's parent_url
 
         // Send the cast via the Neynar API
-        const result = await client.publishCast(custodyAddress, message, {
+        const result = await neynarClient.publishCast(custodyAddress, message, {
           embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
           replyTo: memesChannelUrl,  // Replace with your channel's URL
         });
 
         console.log('Cast sent successfully:', result);
       } catch (error) {
-        console.error('Error during Neynar API lookup or cast submission:', error.message);
+        console.error('Error during Pinata lookup or Neynar cast submission:', error.message);
       }
     }
   } catch (error) {
