@@ -4,6 +4,8 @@ const { NeynarAPIClient } = require("@neynar/nodejs-sdk");
 
 console.log('Starting sendCast script...');
 
+const PINATA_HUB_API = 'https://hub.pinata.cloud/v1';
+
 // Log all relevant environment variables (excluding sensitive data)
 console.log('Environment variables check:');
 console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
@@ -30,6 +32,28 @@ try {
 
 // Function to add delay between API calls
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Function to get user data from Pinata Hub API
+async function getUserDataByFid(fid) {
+  try {
+    const displayResponse = await axios.get(`${PINATA_HUB_API}/userDataByFid`, {
+      params: { fid, user_data_type: 2 }, // 2 is for DISPLAY
+      timeout: 10000
+    });
+    const displayName = displayResponse.data.data.userDataBody.value;
+
+    const usernameResponse = await axios.get(`${PINATA_HUB_API}/userDataByFid`, {
+      params: { fid, user_data_type: 6 }, // 6 is for USERNAME
+      timeout: 10000
+    });
+    const username = usernameResponse.data.data.userDataBody.value;
+
+    return { displayName, username };
+  } catch (error) {
+    console.error(`Error getting user data for FID ${fid}:`, error.message);
+    return null;
+  }
+}
 
 // Function to send a cast
 async function sendCast() {
@@ -83,28 +107,18 @@ async function sendCast() {
       console.log('FID for this goal:', fid);
 
       try {
-        // Fetch the display name and custody address using Pinata's open API
-        console.log('Fetching display name and custody address from Pinata...');
-        const response = await axios.get(`https://api.pinata.cloud/v3/farcaster/users/${fid}`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        const displayName = response.data.user.display_name;
-        const custodyAddress = response.data.user.custody_address;
-
-        console.log('Display name found:', displayName);
-        console.log('Custody address found:', custodyAddress);
-
-        if (!displayName || !custodyAddress) {
-          console.error('Error: Display name or custody address not found.');
+        // Fetch user data from Pinata Hub API
+        const userData = await getUserDataByFid(fid);
+        if (!userData) {
+          console.error('Failed to fetch user data from Pinata Hub API');
           failedCasts++;
           continue;
         }
 
+        console.log('User data fetched successfully:', userData);
+
         // Construct the cast message
-        const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
+        const message = `@${userData.username} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
         // Use the channel URL from your provided details
         const empowerChannelUrl = process.env.EMPOWER_CHANNEL_URL;
@@ -124,13 +138,7 @@ async function sendCast() {
 
       } catch (error) {
         failedCasts++;
-        if (error.response && error.response.status === 401) {
-          console.error('Unauthorized access - 401 Error:', error.message);
-        } else if (error.response) {
-          console.error('Error during API call:', error.response.data);
-        } else {
-          console.error('Error during Pinata lookup or Neynar cast submission:', error.message);
-        }
+        console.error('Error processing goal or sending cast:', error.message);
       }
     }
   } catch (error) {
