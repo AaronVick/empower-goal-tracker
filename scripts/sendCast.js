@@ -82,12 +82,17 @@ async function sendCast() {
 
     // Initialize Neynar API Client
     if (!process.env.NEYNAR_API) {
-      console.error("Error: NEYNAR_API key is missing or undefined.");
+      console.error("Error: NEYNAR_API is missing or undefined.");
       return;
     }
 
     const neynarClient = new NeynarAPIClient(process.env.NEYNAR_API);
     const signer = process.env.NEYNAR_SIGNER;
+
+    if (!signer) {
+      console.error("Error: NEYNAR_SIGNER is missing or undefined.");
+      return;
+    }
 
     // Check if NEXT_PUBLIC_BASE_PATH is set
     if (!process.env.NEXT_PUBLIC_BASE_PATH) {
@@ -125,6 +130,10 @@ async function sendCast() {
 
         // Send the cast via the Neynar API
         console.log('Sending cast to Neynar...');
+        console.log('Message:', message);
+        console.log('Signer:', signer);
+        console.log('Channel URL:', empowerChannelUrl);
+
         const result = await neynarClient.publishCast(signer, message, {
           embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
           replyTo: empowerChannelUrl,
@@ -139,6 +148,9 @@ async function sendCast() {
       } catch (error) {
         failedCasts++;
         console.error('Error processing goal or sending cast:', error.message);
+        if (error.response) {
+          console.error('Error response:', error.response.data);
+        }
       }
     }
   } catch (error) {
