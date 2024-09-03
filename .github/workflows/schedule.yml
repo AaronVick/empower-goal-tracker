@@ -32,3 +32,6 @@ jobs:
           WARPCAST_PRIVATE_KEY: ${{ secrets.WARPCAST_PRIVATE_KEY }}
           WARPCAST_FID: ${{ secrets.WARPCAST_FID }}
           NEYNAR_API: ${{ secrets.NEYNAR_API }}  # Updated to use Neynar API Key
+          NEYNAR_SIGNER: ${{ secrets.NEYNAR_SIGNER }}  # New - Signer ID for casting
+          EMPOWER_CHANNEL_URL: ${{ secrets.EMPOWER_CHANNEL_URL }}
+          NEXT_PUBLIC_BASE_PATH: ${{ secrets.NEXT_PUBLIC_BASE_PATH }}

@@ -43,6 +43,7 @@ async function sendCast() {
     }
 
     const neynarClient = new NeynarAPIClient(process.env.NEYNAR_API);
+    const signer = process.env.NEYNAR_SIGNER;
 
     // Loop through active goals and send casts
     for (const doc of goalsSnapshot.docs) {
@@ -76,12 +77,13 @@ async function sendCast() {
         // Construct the cast message
         const message = `@${displayName} you're being supported on your goal, "${goalData.goal}", by ${goalData.supporters ? goalData.supporters.length : 0} supporters! Keep up the great work!\n\n${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}`;
 
-        const memesChannelUrl = "chain://eip155:1/erc721:0xfd8427165df67df6d7fd689ae67c8ebf56d9ca61";  // Replace with your channel's parent_url
+        // Use the channel URL from your provided details
+        const empowerChannelUrl = process.env.EMPOWER_CHANNEL_URL; // Ensure this is set as an env variable
 
         // Send the cast via the Neynar API
-        const result = await neynarClient.publishCast(custodyAddress, message, {
+        const result = await neynarClient.publishCast(signer, message, {
           embeds: [{ url: `${process.env.NEXT_PUBLIC_BASE_PATH}/goalShare?id=${doc.id}` }],
-          replyTo: memesChannelUrl,  // Replace with your channel's URL
+          replyTo: empowerChannelUrl,
         });
 
         console.log('Cast sent successfully:', result);
