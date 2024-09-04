@@ -31,6 +31,22 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (buttonIndex === 3) {
+      // Home button
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
+          <meta property="fc:frame:button:1" content="Start a Goal" />
+          <meta property="fc:frame:button:2" content="Review Goals" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api" />
+        </head>
+        </html>
+      `);
+    }
+
     console.log('Attempting to fetch goals for FID:', fid);
 
     const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
@@ -72,9 +88,6 @@ export default async function handler(req, res) {
     } else if (buttonIndex === 2) {
       // Next button
       currentIndex = (currentIndex + 1) % totalGoals;
-    } else if (buttonIndex === 3) {
-      // Home button
-      return res.redirect(302, baseUrl);
     } else if (buttonIndex === 4) {
       // Complete Goal button
       console.log('Complete Goal button clicked');

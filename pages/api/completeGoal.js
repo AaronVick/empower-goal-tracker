@@ -45,13 +45,11 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
-    // Only update completion status if fid is provided (i.e., not a shared link view)
     if (fid && !goalData.completed) {
       await db.collection('goals').doc(goalId).update({ completed: true });
       console.log('Goal marked as completed');
     }
 
-    // Add a timestamp to force image regeneration
     const timestamp = Date.now();
     const imageUrl = `${baseUrl}/api/ogComplete?goal=${encodeURIComponent(goalData.goal)}&t=${timestamp}`;
 
@@ -60,8 +58,19 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && req.body.untrustedData) {
       const buttonIndex = parseInt(req.body.untrustedData.buttonIndex);
       if (buttonIndex === 1) {
-        // Back to Review
-        return res.redirect(302, `${baseUrl}/api/reviewGoals?fid=${fid}`);
+        // Back to Home
+        return res.status(200).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta property="fc:frame" content="vNext" />
+            <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
+            <meta property="fc:frame:button:1" content="Start a Goal" />
+            <meta property="fc:frame:button:2" content="Review Goals" />
+            <meta property="fc:frame:post_url" content="${baseUrl}/api" />
+          </head>
+          </html>
+        `);
       } else if (buttonIndex === 2) {
         // Share Achievement
         const shareText = encodeURIComponent(`I've completed my goal: "${goalData.goal}"! 🎉\n\nSet and track your goals with Empower!\n\n`);
@@ -90,9 +99,9 @@ export default async function handler(req, res) {
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
         <meta property="fc:frame:button:1" content="${fid ? 'Back to Home' : 'Set Your Own Goal'}" />
+        <meta property="fc:frame:button:2" content="${fid ? 'Share Achievement' : ''}" />
         <meta property="fc:frame:post_url" content="${baseUrl}/api/completeGoal" />
-        ${fid ? `<meta property="fc:frame:button:2" content="Share Achievement" />` : ''}
-        ${fid ? `<meta property="fc:frame:state" content="${goalId},${fid}" />` : ''}
+        <meta property="fc:frame:state" content="${goalId},${fid}" />
       </head>
       </html>
     `);
