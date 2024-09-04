@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       } else if (buttonIndex === 2) {
         // Share Achievement
         const shareText = encodeURIComponent(`I've completed my goal: "${goalData.goal}"! 🎉\n\nSet and track your goals with Empower!\n\n`);
-        const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
+        const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/completeGoal?id=${goalId}&fid=${fid}`)}`;
         
         return res.status(200).send(`
           <!DOCTYPE html>
