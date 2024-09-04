@@ -82,6 +82,7 @@ async function sendCastToNeynar(signerUuid, text, parentUrl, channelId, embedUrl
 async function sendCast() {
   let successfulCasts = 0;
   let failedCasts = 0;
+  let skippedCompletedGoals = 0;
 
   try {
     const db = admin.firestore();
@@ -116,6 +117,14 @@ async function sendCast() {
       console.log('Processing goal:', goalData.goal);
       console.log('Goal start date:', goalData.startDate.toDate());
       console.log('Goal end date:', goalData.endDate.toDate());
+      console.log('Goal completed status:', goalData.completed);
+
+      // Skip completed goals
+      if (goalData.completed === true) {
+        console.log('Skipping completed goal');
+        skippedCompletedGoals++;
+        continue;
+      }
 
       const fid = goalData.user_id;
       console.log('FID for this goal:', fid);
@@ -175,6 +184,7 @@ async function sendCast() {
     console.log('Cast sending summary:');
     console.log(`Successful casts: ${successfulCasts}`);
     console.log(`Failed casts: ${failedCasts}`);
+    console.log(`Skipped completed goals: ${skippedCompletedGoals}`);
     console.log('sendCast script completed.');
   }
 }
