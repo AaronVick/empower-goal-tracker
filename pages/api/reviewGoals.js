@@ -47,6 +47,12 @@ export default async function handler(req, res) {
     `);
   }
 
+  // Handle "Complete Goal" button click
+  if (buttonIndex === 4) {
+    console.log('Complete Goal button clicked');
+    return res.redirect(302, `${baseUrl}/api/completeGoal?id=${goals[currentIndex].id}&fid=${fid}`);
+  }
+
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
@@ -77,7 +83,7 @@ export default async function handler(req, res) {
       return res.setHeader('Content-Type', 'text/html').status(200).send(html);
     }
 
-    const goals = goalsSnapshot.docs.map(doc => doc.data());
+    const goals = goalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     console.log(`Found ${goals.length} goals for FID:`, fid);
     console.log('All goals data:', JSON.stringify(goals));
 
@@ -107,6 +113,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:1" content="Previous" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:button:3" content="Home" />
+          <meta property="fc:frame:button:4" content="${goalData.completed ? 'Completed' : 'Complete Goal'}" />
           <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:state" content="${currentIndex}" />
         </head>

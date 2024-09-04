@@ -35,6 +35,7 @@ export default async function handler(req, res) {
         startDate: startTimestamp,
         endDate: endTimestamp,
         createdAt: Timestamp.now(),
+        completed: false, // Added this line
       });
 
       const goalId = goalRef.id;
