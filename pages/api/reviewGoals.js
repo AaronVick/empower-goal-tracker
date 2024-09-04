@@ -30,29 +30,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "FID is required" });
   }
 
-  // Handle "Home" button click
-  if (buttonIndex === 3) {
-    console.log('Home button clicked, redirecting to:', baseUrl);
-    return res.status(200).send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
-          <meta property="fc:frame:button:1" content="Start a Goal" />
-          <meta property="fc:frame:button:2" content="Review Goals" />
-          <meta property="fc:frame:post_url" content="${baseUrl}/api" />
-        </head>
-      </html>
-    `);
-  }
-
-  // Handle "Complete Goal" button click
-  if (buttonIndex === 4) {
-    console.log('Complete Goal button clicked');
-    return res.redirect(302, `${baseUrl}/api/completeGoal?id=${goals[currentIndex].id}&fid=${fid}`);
-  }
-
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
@@ -95,6 +72,14 @@ export default async function handler(req, res) {
     } else if (buttonIndex === 2) {
       // Next button
       currentIndex = (currentIndex + 1) % totalGoals;
+    } else if (buttonIndex === 3) {
+      // Home button
+      return res.redirect(302, baseUrl);
+    } else if (buttonIndex === 4) {
+      // Complete Goal button
+      console.log('Complete Goal button clicked');
+      const goalToComplete = goals[currentIndex];
+      return res.redirect(302, `${baseUrl}/api/completeGoal?id=${goalToComplete.id}&fid=${fid}`);
     }
 
     const goalData = goals[currentIndex];
@@ -113,7 +98,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:1" content="Previous" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:button:3" content="Home" />
-          <meta property="fc:frame:button:4" content="${goalData.completed ? 'Completed' : 'Complete Goal'}" />
+          <meta property="fc:frame:button:4" content="${goalData.completed ? 'Completed' : 'Complete'}" />
           <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
           <meta property="fc:frame:state" content="${currentIndex}" />
         </head>
