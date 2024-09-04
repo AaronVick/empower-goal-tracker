@@ -13,8 +13,14 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     ({ id: goalId, fid } = req.query);
   } else if (req.method === 'POST') {
-    const { untrustedData } = req.body;
-    [goalId, fid] = (untrustedData.state || '').split(',');
+    // Check if goalId and fid are in query params (for the initial completion)
+    if (req.query.id && req.query.fid) {
+      ({ id: goalId, fid } = req.query);
+    } else {
+      // For subsequent actions (like sharing), get from state
+      const { untrustedData } = req.body;
+      [goalId, fid] = (untrustedData.state || '').split(',');
+    }
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -52,7 +58,7 @@ export default async function handler(req, res) {
 
     console.log('Generated image URL:', imageUrl);
 
-    if (req.method === 'POST') {
+    if (req.method === 'POST' && req.body.untrustedData) {
       const buttonIndex = parseInt(req.body.untrustedData.buttonIndex);
       if (buttonIndex === 1) {
         // Back to Review
