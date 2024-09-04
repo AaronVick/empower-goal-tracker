@@ -13,11 +13,9 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     ({ id: goalId, fid } = req.query);
   } else if (req.method === 'POST') {
-    // Check if goalId and fid are in query params (for the initial completion)
     if (req.query.id && req.query.fid) {
       ({ id: goalId, fid } = req.query);
     } else {
-      // For subsequent actions (like sharing), get from state
       const { untrustedData } = req.body;
       [goalId, fid] = (untrustedData.state || '').split(',');
     }
@@ -25,9 +23,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!goalId || !fid) {
-    console.log('Missing Goal ID or FID');
-    return res.status(400).json({ error: "Goal ID and FID are required" });
+  if (!goalId) {
+    console.log('Missing Goal ID');
+    return res.status(400).json({ error: "Goal ID is required" });
   }
 
   try {
@@ -42,12 +40,13 @@ export default async function handler(req, res) {
     const goalData = goalDoc.data();
     console.log('Goal data fetched:', goalData);
 
-    if (goalData.user_id != fid) {
+    if (fid && goalData.user_id != fid) {
       console.log('Unauthorized access attempt');
       return res.status(403).json({ error: "Unauthorized" });
     }
 
-    if (!goalData.completed) {
+    // Only update completion status if fid is provided (i.e., not a shared link view)
+    if (fid && !goalData.completed) {
       await db.collection('goals').doc(goalId).update({ completed: true });
       console.log('Goal marked as completed');
     }
@@ -66,7 +65,7 @@ export default async function handler(req, res) {
       } else if (buttonIndex === 2) {
         // Share Achievement
         const shareText = encodeURIComponent(`I've completed my goal: "${goalData.goal}"! 🎉\n\nSet and track your goals with Empower!\n\n`);
-        const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/completeGoal?id=${goalId}&fid=${fid}`)}`;
+        const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/completeGoal?id=${goalId}`)}`;
         
         return res.status(200).send(`
           <!DOCTYPE html>
@@ -90,10 +89,10 @@ export default async function handler(req, res) {
       <head>
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
-        <meta property="fc:frame:button:1" content="Back to Review" />
-        <meta property="fc:frame:button:2" content="Share Achievement" />
-        <meta property="fc:frame:post_url" content="${baseUrl}/api/completeGoal" />
-        <meta property="fc:frame:state" content="${goalId},${fid}" />
+        <meta property="fc:frame:button:1" content="${fid ? 'Back to Review' : 'Set Your Own Goal'}" />
+        <meta property="fc:frame:post_url" content="${fid ? `${baseUrl}/api/completeGoal` : `${baseUrl}/api/start`}" />
+        ${fid ? `<meta property="fc:frame:button:2" content="Share Achievement" />` : ''}
+        ${fid ? `<meta property="fc:frame:state" content="${goalId},${fid}" />` : ''}
       </head>
       </html>
     `);
