@@ -8,7 +8,16 @@ export default async function handler(req, res) {
   console.log('Request body:', JSON.stringify(req.body, null, 2));
   console.log('Request query:', JSON.stringify(req.query, null, 2));
 
-  const { id: goalId, fid } = req.query;
+  let goalId, fid;
+
+  if (req.method === 'GET') {
+    ({ id: goalId, fid } = req.query);
+  } else if (req.method === 'POST') {
+    const { untrustedData } = req.body;
+    [goalId, fid] = (untrustedData.state || '').split(',');
+  } else {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   if (!goalId || !fid) {
     console.log('Missing Goal ID or FID');
@@ -42,6 +51,31 @@ export default async function handler(req, res) {
     const imageUrl = `${baseUrl}/api/ogComplete?goal=${encodeURIComponent(goalData.goal)}&t=${timestamp}`;
 
     console.log('Generated image URL:', imageUrl);
+
+    if (req.method === 'POST') {
+      const buttonIndex = parseInt(req.body.untrustedData.buttonIndex);
+      if (buttonIndex === 1) {
+        // Back to Review
+        return res.redirect(302, `${baseUrl}/api/reviewGoals?fid=${fid}`);
+      } else if (buttonIndex === 2) {
+        // Share Achievement
+        const shareText = encodeURIComponent(`I've completed my goal: "${goalData.goal}"! 🎉\n\nSet and track your goals with Empower!\n\n`);
+        const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
+        
+        return res.status(200).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta property="fc:frame" content="vNext" />
+            <meta property="fc:frame:image" content="${imageUrl}" />
+            <meta property="fc:frame:button:1" content="Share on Warpcast" />
+            <meta property="fc:frame:button:1:action" content="link" />
+            <meta property="fc:frame:button:1:target" content="${shareLink}" />
+          </head>
+          </html>
+        `);
+      }
+    }
 
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(`
