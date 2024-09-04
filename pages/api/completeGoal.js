@@ -89,8 +89,8 @@ export default async function handler(req, res) {
       <head>
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
-        <meta property="fc:frame:button:1" content="${fid ? 'Back to Review' : 'Set Your Own Goal'}" />
-        <meta property="fc:frame:post_url" content="${fid ? `${baseUrl}/api/completeGoal` : `${baseUrl}/api/start`}" />
+        <meta property="fc:frame:button:1" content="${fid ? 'Back to Home' : 'Set Your Own Goal'}" />
+        <meta property="fc:frame:post_url" content="${baseUrl}/api/completeGoal" />
         ${fid ? `<meta property="fc:frame:button:2" content="Share Achievement" />` : ''}
         ${fid ? `<meta property="fc:frame:state" content="${goalId},${fid}" />` : ''}
       </head>
