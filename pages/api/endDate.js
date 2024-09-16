@@ -26,21 +26,19 @@ export default async function handler(req, res) {
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'endDate' };
 
       if (buttonIndex === 2) {
-        // Validate end date and proceed
         if (isValidDateFormat(inputText)) {
           sessionData.endDate = inputText;
-          sessionData.currentStep = 'review';
+          sessionData.currentStep = 'review';  // Move to review step
           sessionData.error = null;
           await sessionRef.set(sessionData);
 
-          // Redirect to review step
-          return res.redirect(307, `${baseUrl}/api/review`);
+          // Redirect to the review page
+          return res.redirect(307, `${baseUrl}/api/reviewGoals?fid=${fid}`);
         } else {
           console.log('Error: Invalid end date format');
           sessionData.error = 'invalid_end_date';
         }
       } else if (buttonIndex === 1) {
-        // Back button - return to startDate
         sessionData.currentStep = 'startDate';
         await sessionRef.set(sessionData);
         return res.redirect(307, `${baseUrl}/api/startDate`);
