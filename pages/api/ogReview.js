@@ -14,12 +14,14 @@ export default async function handler(req) {
     const endDate = searchParams.get('endDate');
     const index = searchParams.get('index');
     const total = searchParams.get('total');
+    const completed = searchParams.get('completed') === 'true';
 
     console.log('Goal:', goal);
     console.log('Start Date:', startDate);
     console.log('End Date:', endDate);
     console.log('Index:', index);
     console.log('Total:', total);
+    console.log('Completed:', completed);
 
     if (!goal || !startDate || !endDate) {
       return new Response('Missing required parameters', { status: 400 });
@@ -42,11 +44,23 @@ export default async function handler(req) {
             textAlign: 'center',
           }}
         >
-          <h1 style={{ fontSize: '48px', marginBottom: '30px' }}>Your Goal Review</h1>
-          <p style={{ fontSize: '24px', marginBottom: '20px' }}>Goal {index} of {total}</p>
-          <p style={{ fontSize: '36px', marginBottom: '20px' }}>Goal: {decodeURIComponent(goal)}</p>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Your Goal Review</h1>
+          <p style={{ fontSize: '24px', marginBottom: '10px' }}>Goal {index} of {total}</p>
+          <p style={{ fontSize: '36px', marginBottom: '20px', maxWidth: '80%', wordBreak: 'break-word' }}>
+            {decodeURIComponent(goal)}
+          </p>
           <p style={{ fontSize: '24px', marginBottom: '10px' }}>Start Date: {decodeURIComponent(startDate)}</p>
-          <p style={{ fontSize: '24px' }}>End Date: {decodeURIComponent(endDate)}</p>
+          <p style={{ fontSize: '24px', marginBottom: '20px' }}>End Date: {decodeURIComponent(endDate)}</p>
+          <p style={{ 
+            fontSize: '28px', 
+            fontWeight: 'bold',
+            color: completed ? '#4CAF50' : '#FFA500',
+            padding: '10px 20px',
+            borderRadius: '20px',
+            background: 'rgba(255, 255, 255, 0.1)'
+          }}>
+            {completed ? 'Completed' : 'In Progress'}
+          </p>
         </div>
       ),
       {

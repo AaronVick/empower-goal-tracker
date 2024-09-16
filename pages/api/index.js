@@ -7,10 +7,17 @@ export default async function handler(req, res) {
   console.log('Request method:', req.method);
   console.log('Request body:', JSON.stringify(req.body, null, 2));
 
-  if (req.method === 'POST') {
-    const { untrustedData } = req.body;
-    const buttonIndex = parseInt(untrustedData.buttonIndex);
-    const fid = untrustedData.fid;
+  if (req.method === 'GET' || req.method === 'POST') {
+    let buttonIndex, fid;
+
+    if (req.method === 'POST') {
+      const { untrustedData } = req.body;
+      buttonIndex = parseInt(untrustedData.buttonIndex);
+      fid = untrustedData.fid;
+    } else {
+      ({ buttonIndex, fid } = req.query);
+      buttonIndex = parseInt(buttonIndex || '0');
+    }
 
     if (buttonIndex === 1) {
       // "Start a Goal" was clicked
@@ -29,7 +36,8 @@ export default async function handler(req, res) {
         <head>
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/og?step=start" />
-          <meta property="fc:frame:input:text" content="Enter your goal" />
+          <meta property="fc:frame:input:text" content="" />
+          <meta property="fc:frame:input:placeholder" content="Enter your goal" />
           <meta property="fc:frame:button:1" content="Cancel" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
@@ -50,7 +58,7 @@ export default async function handler(req, res) {
     <html>
     <head>
       <meta property="fc:frame" content="vNext" />
-      <meta property="fc:frame:image" content="${baseUrl}/api/image" />
+      <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
       <meta property="fc:frame:button:1" content="Start a Goal" />
       <meta property="fc:frame:button:2" content="Review Goals" />
       <meta property="fc:frame:post_url" content="${baseUrl}/api" />

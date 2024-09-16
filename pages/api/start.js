@@ -127,7 +127,7 @@ export default async function handler(req, res) {
 }
 
 function generateHtml(sessionData, baseUrl, error, currentStep) {
-  let imageUrl, inputTextContent, button1Content, button2Content;
+  let imageUrl, inputTextContent, inputPlaceholder, button1Content, button2Content;
 
   if (error) {
     imageUrl = `${baseUrl}/api/og?error=${error}&step=${currentStep}`;
@@ -141,15 +141,18 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
   }
 
   if (currentStep === 'start') {
-    inputTextContent = sessionData.goal || 'Enter your goal';
+    inputTextContent = sessionData.goal || '';
+    inputPlaceholder = 'Enter your goal';
     button1Content = 'Cancel';
     button2Content = 'Next';
   } else if (currentStep === '2') {
-    inputTextContent = sessionData.startDate || 'Enter start date (DD/MM/YYYY)';
+    inputTextContent = sessionData.startDate || '';
+    inputPlaceholder = 'Enter start date (DD/MM/YYYY)';
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === '3') {
-    inputTextContent = sessionData.endDate || 'Enter end date (DD/MM/YYYY)';
+    inputTextContent = sessionData.endDate || '';
+    inputPlaceholder = 'Enter end date (DD/MM/YYYY)';
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === 'review') {
@@ -163,7 +166,8 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
       <head>
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
-        ${inputTextContent ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
+        ${inputPlaceholder ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
+        ${inputPlaceholder ? `<meta property="fc:frame:input:placeholder" content="${inputPlaceholder}" />` : ''}
         <meta property="fc:frame:button:1" content="${button1Content}" />
         <meta property="fc:frame:button:2" content="${button2Content}" />
         <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
