@@ -10,7 +10,7 @@ export default function Home() {
         <meta property="fc:frame:image" content={`${baseUrl}/api/image`} />
         <meta property="fc:frame:button:1" content="Start a Goal" />
         <meta property="fc:frame:button:2" content="Review Goals" />
-        <meta property="fc:frame:post_url" content={`${baseUrl}/api/start`} />
+        <meta property="fc:frame:post_url" content={`${baseUrl}/api`} />
       </head>
       <body>
         <h1>Welcome to Empower Goal Tracker</h1>
@@ -21,7 +21,8 @@ export default function Home() {
 
 export async function getServerSideProps(context) {
   if (context.req.method === 'POST') {
-    const { untrustedData } = context.req.body;
+    const body = await readBody(context.req);
+    const { untrustedData } = JSON.parse(body);
     const buttonIndex = parseInt(untrustedData.buttonIndex);
     const fid = untrustedData.fid;
 
@@ -56,4 +57,18 @@ export async function getServerSideProps(context) {
   }
 
   return { props: {} };
+}
+
+// Helper function to read the request body
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      resolve(body);
+    });
+    req.on('error', reject);
+  });
 }
