@@ -20,16 +20,15 @@ export default async function handler(req, res) {
       inputText = untrustedData.inputText || '';
       fid = untrustedData.fid;
     } else {
-      ({ buttonIndex, inputText, fid, step } = req.query);
+      ({ buttonIndex, inputText, fid } = req.query);
       buttonIndex = parseInt(buttonIndex || '0');
-      currentStep = step || 'start';
     }
 
     // Fetch session for current user
     const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
-    let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
+    let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep: 'start', stepGoal: 'start' };
 
-    currentStep = sessionData.stepGoal || currentStep;
+    currentStep = sessionData.currentStep || 'start';
 
     console.log('Current step:', currentStep);
     console.log('Session data:', sessionData);
@@ -37,37 +36,37 @@ export default async function handler(req, res) {
     if (currentStep === 'start') {
       if (buttonIndex === 2 && inputText.trim()) {
         sessionData.goal = inputText;
-        sessionData.stepGoal = '2';
-        currentStep = '2';
+        sessionData.currentStep = 'date';
+        currentStep = 'date';
       } else if (buttonIndex === 2) {
         error = 'no_goal';
       }
-    } else if (currentStep === '2') {
+    } else if (currentStep === 'date') {
       if (buttonIndex === 2 && isValidDateFormat(inputText)) {
         sessionData.startDate = inputText;
-        sessionData.stepGoal = '3';
-        currentStep = '3';
+        sessionData.currentStep = 'endDate';
+        currentStep = 'endDate';
       } else if (buttonIndex === 2) {
         error = 'invalid_start_date';
       } else if (buttonIndex === 1) {
-        sessionData.stepGoal = 'start';
+        sessionData.currentStep = 'start';
         currentStep = 'start';
       }
-    } else if (currentStep === '3') {
+    } else if (currentStep === 'endDate') {
       if (buttonIndex === 2 && isValidDateFormat(inputText)) {
         sessionData.endDate = inputText;
-        sessionData.stepGoal = 'review';
+        sessionData.currentStep = 'review';
         currentStep = 'review';
       } else if (buttonIndex === 2) {
         error = 'invalid_end_date';
       } else if (buttonIndex === 1) {
-        sessionData.stepGoal = '2';
-        currentStep = '2';
+        sessionData.currentStep = 'date';
+        currentStep = 'date';
       }
     } else if (currentStep === 'review') {
       if (buttonIndex === 1) {
         // Edit button clicked, go back to start but keep the data
-        sessionData.stepGoal = 'start';
+        sessionData.currentStep = 'start';
         currentStep = 'start';
       } else if (buttonIndex === 2) {
         // Set Goal button clicked, save the goal
@@ -145,11 +144,11 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
     inputTextContent = sessionData.goal || '';
     button1Content = 'Cancel';
     button2Content = 'Next';
-  } else if (currentStep === '2') {
+  } else if (currentStep === 'date') {
     inputTextContent = sessionData.startDate || '';
     button1Content = 'Back';
     button2Content = 'Next';
-  } else if (currentStep === '3') {
+  } else if (currentStep === 'endDate') {
     inputTextContent = sessionData.endDate || '';
     button1Content = 'Back';
     button2Content = 'Next';
@@ -164,7 +163,7 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
       <head>
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
-        ${currentStep !== 'review' ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
+        <meta property="fc:frame:input:text" content="${inputTextContent}" />
         <meta property="fc:frame:button:1" content="${button1Content}" />
         <meta property="fc:frame:button:2" content="${button2Content}" />
         <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />

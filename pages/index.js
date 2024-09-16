@@ -32,13 +32,13 @@ export async function getServerSideProps(context) {
 
       // Initialize a session for the user
       await db.collection('sessions').doc(fid.toString()).set({
-        stepGoal: 'start',
+        currentStep: 'start',
         fid: fid
       });
 
       return {
         redirect: {
-          destination: `/api/start?fid=${fid}&step=start`,
+          destination: `/api/start?fid=${fid}`,
           permanent: false,
         },
       };
