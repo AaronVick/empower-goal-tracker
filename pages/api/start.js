@@ -88,13 +88,16 @@ export default async function handler(req, res) {
 }
 
 function generateHtml(sessionData, baseUrl, error) {
-  let imageUrl, inputTextContent, button1Content, button2Content;
+  let imageUrl, inputTextContent, button1Content, button2Content, button1Action, button2Action;
 
+  // Handle transitions and errors
   if (error) {
     imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.currentStep}`;
     inputTextContent = "Error occurred, please try again.";
     button1Content = "Home";
     button2Content = "Retry";
+    button1Action = `${baseUrl}`; // Home (index)
+    button2Action = `${baseUrl}/api/start`; // Retry (start from goal)
   } else {
     switch (sessionData.currentStep) {
       case 'start':
@@ -102,18 +105,24 @@ function generateHtml(sessionData, baseUrl, error) {
         inputTextContent = "Enter your goal";
         button1Content = "Cancel";
         button2Content = "Next";
+        button1Action = `${baseUrl}`; // Home (index)
+        button2Action = `${baseUrl}/api/start`; // Proceed to the next step
         break;
       case 'startDate':
         imageUrl = `${baseUrl}/api/og?step=startDate`;
         inputTextContent = "Enter the start date (dd/mm/yyyy)";
         button1Content = "Back";
         button2Content = "Next";
+        button1Action = `${baseUrl}/api/start`; // Back to the previous step (goal entry)
+        button2Action = `${baseUrl}/api/start`; // Proceed to the next step
         break;
       case 'endDate':
         imageUrl = `${baseUrl}/api/og?step=endDate`;
         inputTextContent = "Enter the end date (dd/mm/yyyy)";
         button1Content = "Back";
         button2Content = "Next";
+        button1Action = `${baseUrl}/api/start`; // Back to start date entry
+        button2Action = `${baseUrl}/api/start`; // Proceed to the review step
         break;
       case 'review':
         const goal = encodeURIComponent(sessionData.goal);
@@ -122,22 +131,30 @@ function generateHtml(sessionData, baseUrl, error) {
         imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
         button1Content = "Back";
         button2Content = "Set Goal";
-        inputTextContent = null;
+        button1Action = `${baseUrl}/api/start`; // Back to end date entry
+        button2Action = `${baseUrl}/api/setGoal`; // Finalize the goal
+        inputTextContent = null; // No input needed for review step
         break;
       case 'success':
         imageUrl = `${baseUrl}/api/successImage`;
         button1Content = "Home";
         button2Content = "Share";
-        inputTextContent = null;
+        button1Action = `${baseUrl}`; // Home (index)
+        button2Action = `${baseUrl}/api/ogShare`; // Share the goal
+        inputTextContent = null; // No input needed for success step
         break;
       default:
+        // Handle unknown step with specific actions for "Cancel" and "Retry"
         imageUrl = `${baseUrl}/api/og?step=unknown`;
         inputTextContent = "Unknown step.";
         button1Content = "Cancel";
         button2Content = "Retry";
+        button1Action = `${baseUrl}`; // Home (index)
+        button2Action = `${baseUrl}/api/start`; // Restart from goal entry
     }
   }
 
+  // Generate the HTML response with buttons properly configured
   return `
 <!DOCTYPE html>
 <html>
@@ -147,7 +164,11 @@ function generateHtml(sessionData, baseUrl, error) {
     <meta property="fc:frame:image" content="${imageUrl}" />
     ${inputTextContent ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
     <meta property="fc:frame:button:1" content="${button1Content}" />
+    <meta property="fc:frame:button:1:action" content="link" />
+    <meta property="fc:frame:button:1:target" content="${button1Action}" />
     <meta property="fc:frame:button:2" content="${button2Content}" />
+    <meta property="fc:frame:button:2:action" content="link" />
+    <meta property="fc:frame:button:2:target" content="${button2Action}" />
     <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
   </head>
   <body>
