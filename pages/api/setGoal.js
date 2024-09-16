@@ -9,9 +9,6 @@ export default async function handler(req, res) {
     console.log('Request Body:', req.body);
 
     const { untrustedData } = req.body;
-    const goal = process.env.userSetGoal;
-    const startDate = process.env.userStartDate;
-    const endDate = process.env.userEndDate;
 
     try {
       const userFID = untrustedData.fid;
@@ -19,6 +16,23 @@ export default async function handler(req, res) {
       if (!userFID) {
         throw new Error('User FID not found in request data');
       }
+
+      // Retrieve session data from Firebase (goal, startDate, endDate)
+      const sessionSnapshot = await db.collection('sessions').doc(userFID.toString()).get();
+      if (!sessionSnapshot.exists) {
+        throw new Error('Session not found for user');
+      }
+
+      const sessionData = sessionSnapshot.data();
+      const goal = sessionData.goal;
+      const startDate = sessionData.startDate;
+      const endDate = sessionData.endDate;
+
+      // Logging the session data for troubleshooting
+      console.log('Session Data:');
+      console.log(`Goal: ${goal}`);
+      console.log(`Start Date: ${startDate}`);
+      console.log(`End Date: ${endDate}`);
 
       const startTimestamp = convertToTimestamp(startDate, true);
       const endTimestamp = convertToTimestamp(endDate, false);
@@ -59,6 +73,9 @@ export default async function handler(req, res) {
         </head>
         </html>
       `);
+
+      // Clear the session data after successful goal creation
+      await db.collection('sessions').doc(userFID.toString()).delete();
     } catch (error) {
       console.error("Error setting goal:", error);
       res.redirect(302, `${baseUrl}/api/error`);
@@ -68,9 +85,18 @@ export default async function handler(req, res) {
   }
 }
 
+// Utility function to convert date strings to Firebase Timestamp
 function convertToTimestamp(dateString, isStart) {
+  if (!dateString) {
+    throw new Error('Date string is invalid');
+  }
+
   const [day, month, year] = dateString.split('/');
   const date = new Date(`${year}-${month}-${day}`);
+
+  if (isNaN(date)) {
+    throw new Error(`Invalid date format: ${dateString}`);
+  }
 
   if (date.toDateString() === new Date().toDateString()) {
     return Timestamp.fromDate(new Date());

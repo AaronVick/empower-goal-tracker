@@ -8,8 +8,8 @@ export default async function handler(req, res) {
   console.log('Request query:', JSON.stringify(req.query, null, 2));
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-
   let fid, currentIndex, buttonIndex;
+
   if (req.method === 'POST') {
     const { untrustedData } = req.body;
     fid = untrustedData.fid;
@@ -31,8 +31,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Home button logic
     if (buttonIndex === 3) {
-      // Home button
+      console.log('Home button clicked');
       return res.status(200).send(`
         <!DOCTYPE html>
         <html>
@@ -47,6 +48,7 @@ export default async function handler(req, res) {
       `);
     }
 
+    // Fetching goals from Firestore
     console.log('Attempting to fetch goals for FID:', fid);
 
     const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
@@ -82,6 +84,7 @@ export default async function handler(req, res) {
 
     const totalGoals = goals.length;
 
+    // Button logic for navigating goals and completing them
     if (buttonIndex === 1) {
       // Previous button
       currentIndex = (currentIndex - 1 + totalGoals) % totalGoals;

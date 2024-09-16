@@ -2,7 +2,7 @@ import { db } from '../../lib/firebase';
 
 export default async function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-  
+
   console.log('Complete Goal accessed');
   console.log('Request method:', req.method);
   console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -30,7 +30,15 @@ export default async function handler(req, res) {
 
   try {
     console.log('Fetching goal data for ID:', goalId);
-    const goalDoc = await db.collection('goals').doc(goalId).get();
+
+    // Fetch goal data from the sessions collection if available
+    let goalDoc = await db.collection('sessions').doc(fid).get();
+
+    // If no session is found, check in the goals collection
+    if (!goalDoc.exists) {
+      console.log('No session found, fetching goal from goals collection');
+      goalDoc = await db.collection('goals').doc(goalId).get();
+    }
 
     if (!goalDoc.exists) {
       console.error(`Goal ID ${goalId} not found.`);
@@ -40,11 +48,13 @@ export default async function handler(req, res) {
     const goalData = goalDoc.data();
     console.log('Goal data fetched:', goalData);
 
+    // Check FID authorization
     if (fid && goalData.user_id != fid) {
       console.log('Unauthorized access attempt');
       return res.status(403).json({ error: "Unauthorized" });
     }
 
+    // Mark goal as completed if it's not already marked
     if (fid && !goalData.completed) {
       await db.collection('goals').doc(goalId).update({ completed: true });
       console.log('Goal marked as completed');
@@ -91,6 +101,7 @@ export default async function handler(req, res) {
       }
     }
 
+    // Handle GET or POST response if no button interaction
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(`
       <!DOCTYPE html>
