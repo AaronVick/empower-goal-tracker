@@ -49,7 +49,7 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
     button2Content = "Retry";
   }
 
-  let html = `
+  const html = `
 <!DOCTYPE html>
 <html>
   <head>

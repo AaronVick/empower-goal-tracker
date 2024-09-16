@@ -31,7 +31,10 @@ export default async function handler(req, res) {
         sessionData.error = null;
         await sessionRef.set(sessionData);
         console.log('Moving to startDate step');
-        return res.redirect(307, `${baseUrl}/api/startDate`);
+        const html = generateHtml('startDate', sessionData, baseUrl);
+        console.log('Generated HTML:', html);
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(html);
       } else if (buttonIndex === 2) {
         console.log('Error: No goal provided');
         sessionData.error = 'no_goal';
