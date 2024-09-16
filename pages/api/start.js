@@ -1,4 +1,5 @@
 import { db } from '../../lib/firebase';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed');
@@ -61,6 +62,36 @@ export default async function handler(req, res) {
       } else if (buttonIndex === 1) {
         sessionData.stepGoal = '2';
         currentStep = '2';
+      }
+    } else if (currentStep === 'review') {
+      if (buttonIndex === 1) {
+        // Edit button clicked, go back to start
+        sessionData.stepGoal = 'start';
+        currentStep = 'start';
+      } else if (buttonIndex === 2) {
+        // Set Goal button clicked, save the goal
+        try {
+          const goalRef = await db.collection('goals').add({
+            user_id: fid,
+            goal: sessionData.goal,
+            startDate: Timestamp.fromDate(new Date(sessionData.startDate.split('/').reverse().join('-'))),
+            endDate: Timestamp.fromDate(new Date(sessionData.endDate.split('/').reverse().join('-'))),
+            createdAt: Timestamp.now(),
+            completed: false,
+          });
+
+          const goalId = goalRef.id;
+          console.log(`Goal successfully added with ID: ${goalId}`);
+
+          // Clear the session data after successful goal creation
+          await db.collection('sessions').doc(fid.toString()).delete();
+
+          // Redirect to the share page
+          return res.redirect(302, `${baseUrl}/api/goalShare?id=${goalId}`);
+        } catch (error) {
+          console.error("Error setting goal:", error);
+          return res.redirect(302, `${baseUrl}/api/error`);
+        }
       }
     }
 
