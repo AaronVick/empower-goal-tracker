@@ -1,5 +1,5 @@
 import { db } from '../../lib/firebase';
-import { generateHtml, isValidDateFormat } from './utils';
+import { generateHtml, isValidDateFormat } from './utils';  // Ensure isValidDateFormat is imported
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed - End Date Step');
@@ -25,17 +25,18 @@ export default async function handler(req, res) {
       const sessionSnapshot = await sessionRef.get();
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'endDate' };
 
-      // Check for the "Next" button press
+      // Handle the "Next" button press with valid date input
       if (buttonIndex === 2) {
-        if (isValidDateFormat(inputText)) {
+        if (isValidDateFormat(inputText)) {  // Ensure this function is called correctly
           sessionData.endDate = inputText;  // Store the valid end date
           sessionData.currentStep = 'review';  // Move to the next step (review)
           sessionData.error = null;  // Clear any existing errors
           await sessionRef.set(sessionData);  // Update session in Firebase
+
+          // Redirect to the review frame (only once)
           console.log('Moving to review step');
           return res.redirect(307, `${baseUrl}/api/review`);
         } else {
-          // Handle invalid date error
           sessionData.error = 'invalid_end_date';
           console.log('Error: Invalid end date format');
         }
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
       res.status(200).send(html);
     } catch (error) {
       console.error('Error in endDate step:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });

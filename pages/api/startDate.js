@@ -1,5 +1,5 @@
 import { db } from '../../lib/firebase';
-import { generateHtml, isValidDateFormat } from './utils';
+import { generateHtml, isValidDateFormat } from './utils';  // Ensure isValidDateFormat is imported
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed - Start Date Step');
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
       // Handle the "Next" button press with valid date input
       if (buttonIndex === 2) {
-        if (isValidDateFormat(inputText)) {
+        if (isValidDateFormat(inputText)) {  // Ensure this function is called correctly
           sessionData.startDate = inputText;  // Store the valid start date
           sessionData.currentStep = 'endDate';  // Move to the next step (endDate)
           sessionData.error = null;  // Clear any existing errors
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
       res.status(200).send(html);
     } catch (error) {
       console.error('Error in startDate step:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });
