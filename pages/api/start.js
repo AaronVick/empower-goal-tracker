@@ -1,5 +1,5 @@
 import { db } from '../../lib/firebase';
-import { generateHtml, isValidDateFormat } from './utils';
+import { generateHtml } from './utils';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed - Start Step');
@@ -27,22 +27,25 @@ export default async function handler(req, res) {
 
       console.log('Current session data:', sessionData);
 
-      if (sessionData.currentStep === 'start') {
-        if (buttonIndex === 2 && inputText.trim()) {
-          sessionData.goal = inputText.trim();
-          sessionData.currentStep = 'startDate';
-          console.log('Moving to startDate step');
-          await sessionRef.set(sessionData);
-          return res.redirect(307, `${baseUrl}/api/startDate`);
-        } else if (buttonIndex === 2) {
-          console.log('Error: No goal provided');
-          sessionData.error = 'no_goal';
-        }
+      if (buttonIndex === 2 && inputText.trim()) {
+        // User clicked Next, goal provided
+        sessionData.goal = inputText.trim();
+        sessionData.currentStep = 'startDate';  // Set the next step
+        console.log('Moving to startDate step');
+        await sessionRef.set(sessionData);  // Update session in Firebase
+
+        // Redirect to the startDate frame
+        return res.redirect(307, `${baseUrl}/api/startDate`);
+      } else if (buttonIndex === 2) {
+        // If the goal is not provided, show an error
+        console.log('Error: No goal provided');
+        sessionData.error = 'no_goal';
       }
 
       console.log('Updated session data:', sessionData);
       await sessionRef.set(sessionData);
 
+      // Render the current frame with error if needed
       const html = generateHtml('start', sessionData, baseUrl, sessionData.error);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');

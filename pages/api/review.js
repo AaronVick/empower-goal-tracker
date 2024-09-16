@@ -24,11 +24,13 @@ export default async function handler(req, res) {
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'review' };
 
       if (buttonIndex === 2) {
-        sessionData.currentStep = 'setGoal';
+        // User clicked Next to set the goal
+        sessionData.currentStep = 'setGoal';  // Move to setGoal step
         await sessionRef.set(sessionData);
         console.log('Moving to setGoal step');
         return res.redirect(307, `${baseUrl}/api/setGoal`);
       } else if (buttonIndex === 1) {
+        // User clicked Back to edit the endDate step
         sessionData.currentStep = 'endDate';
         await sessionRef.set(sessionData);
         console.log('Moving back to endDate step');

@@ -1,6 +1,5 @@
 import { db } from '../../lib/firebase';
 import { Timestamp } from 'firebase-admin/firestore';
-import { generateHtml } from './utils';
 
 export default async function handler(req, res) {
     console.log('Goal Tracker API accessed - Set Goal Step');
@@ -18,7 +17,7 @@ export default async function handler(req, res) {
         }
 
         try {
-            // Retrieve session data
+            // Retrieve session data from Firebase
             const sessionRef = await db.collection('sessions').doc(fid).get();
             if (!sessionRef.exists) {
                 return res.status(400).json({ error: 'No session found' });
@@ -26,26 +25,28 @@ export default async function handler(req, res) {
             const sessionData = sessionRef.data();
             const { goal, startDate, endDate } = sessionData;
 
+            // Convert the start and end dates to Firebase Timestamps
             const startTimestamp = convertToTimestamp(startDate, true);
             const endTimestamp = convertToTimestamp(endDate, false);
 
-            // Add the goal to the goals collection
+            // Add the goal to the 'goals' collection in Firebase
             const goalRef = await db.collection('goals').add({
                 user_id: fid,
                 goal,
                 startDate: startTimestamp,
                 endDate: endTimestamp,
                 createdAt: Timestamp.now(),
-                completed: false,
+                completed: false,  // Marking as incomplete when goal is initially set
             });
 
             const goalId = goalRef.id;
-
             console.log(`Goal successfully added with ID: ${goalId}`);
 
+            // Generate the share link for Warpcast
             const shareText = encodeURIComponent(`I set a new goal: "${goal}"! Support me on my journey!\n\nFrame by @aaronv\n\n`);
             const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
 
+            // Generate the success response with options to share on Warpcast
             const html = `
                 <!DOCTYPE html>
                 <html>
@@ -59,6 +60,9 @@ export default async function handler(req, res) {
                     <meta property="fc:frame:button:2:action" content="link" />
                     <meta property="fc:frame:button:2:target" content="${shareLink}" />
                 </head>
+                <body>
+                    <p>Your goal has been successfully set! You can share it with your network.</p>
+                </body>
                 </html>
             `;
 
@@ -67,13 +71,14 @@ export default async function handler(req, res) {
             res.status(200).send(html);
         } catch (error) {
             console.error('Error setting goal:', error);
-            res.redirect(302, `${baseUrl}/api/error`);
+            return res.redirect(302, `${baseUrl}/api/error`);
         }
     } else {
         res.status(405).json({ error: 'Method not allowed' });
     }
 }
 
+// Helper function to convert the date string to a Firebase Timestamp
 function convertToTimestamp(dateString, isStart) {
     if (!dateString) {
         throw new Error('Date string is invalid');
@@ -86,14 +91,12 @@ function convertToTimestamp(dateString, isStart) {
         throw new Error(`Invalid date format: ${dateString}`);
     }
 
-    if (date.toDateString() === new Date().toDateString()) {
-        return Timestamp.fromDate(new Date());
+    // Set hours to start or end of the day depending on isStart
+    if (isStart) {
+        date.setHours(0, 0, 0, 0);
     } else {
-        if (isStart) {
-            date.setHours(0, 0, 0, 0);
-        } else {
-            date.setHours(23, 59, 59, 999);
-        }
-        return Timestamp.fromDate(date);
+        date.setHours(23, 59, 59, 999);
     }
+
+    return Timestamp.fromDate(date);
 }

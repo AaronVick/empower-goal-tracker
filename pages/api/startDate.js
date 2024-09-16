@@ -26,15 +26,17 @@ export default async function handler(req, res) {
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'startDate' };
 
       if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+        // User clicked Next and provided valid start date
         sessionData.startDate = inputText;
-        sessionData.currentStep = 'endDate';
-        await sessionRef.set(sessionData);
+        sessionData.currentStep = 'endDate';  // Move to next step
+        await sessionRef.set(sessionData);  // Update session in Firebase
         console.log('Moving to endDate step');
         return res.redirect(307, `${baseUrl}/api/endDate`);
       } else if (buttonIndex === 2) {
         console.log('Error: Invalid start date format');
         sessionData.error = 'invalid_start_date';
       } else if (buttonIndex === 1) {
+        // User clicked Back, return to start step
         sessionData.currentStep = 'start';
         await sessionRef.set(sessionData);
         console.log('Moving back to start step');
@@ -44,6 +46,7 @@ export default async function handler(req, res) {
       console.log('Updated session data:', sessionData);
       await sessionRef.set(sessionData);
 
+      // Render the current frame with error if needed
       const html = generateHtml('startDate', sessionData, baseUrl, sessionData.error);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');
