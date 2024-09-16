@@ -65,7 +65,7 @@ export default async function handler(req, res) {
       }
     } else if (currentStep === 'review') {
       if (buttonIndex === 1) {
-        // Edit button clicked, go back to start
+        // Edit button clicked, go back to start but keep the data
         sessionData.stepGoal = 'start';
         currentStep = 'start';
       } else if (buttonIndex === 2) {
@@ -86,8 +86,26 @@ export default async function handler(req, res) {
           // Clear the session data after successful goal creation
           await db.collection('sessions').doc(fid.toString()).delete();
 
-          // Redirect to the share page
-          return res.redirect(302, `${baseUrl}/api/goalShare?id=${goalId}`);
+          // Generate share link and return the completion frame
+          const shareText = encodeURIComponent(`I set a new goal: "${sessionData.goal}"! Support me on my journey!\n\nFrame by @aaronv\n\n`);
+          const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
+          
+          const imageUrl = `${baseUrl}/api/ogComplete?goal=${encodeURIComponent(sessionData.goal)}`;
+
+          return res.status(200).send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta property="fc:frame" content="vNext" />
+              <meta property="fc:frame:image" content="${imageUrl}" />
+              <meta property="fc:frame:button:1" content="Home" />
+              <meta property="fc:frame:post_url:1" content="${baseUrl}/api" />
+              <meta property="fc:frame:button:2" content="Share" />
+              <meta property="fc:frame:button:2:action" content="link" />
+              <meta property="fc:frame:button:2:target" content="${shareLink}" />
+            </head>
+            </html>
+          `);
         } catch (error) {
           console.error("Error setting goal:", error);
           return res.redirect(302, `${baseUrl}/api/error`);
@@ -123,15 +141,15 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
   }
 
   if (currentStep === 'start') {
-    inputTextContent = 'Enter your goal';
+    inputTextContent = sessionData.goal || 'Enter your goal';
     button1Content = 'Cancel';
     button2Content = 'Next';
   } else if (currentStep === '2') {
-    inputTextContent = 'Enter start date (DD/MM/YYYY)';
+    inputTextContent = sessionData.startDate || 'Enter start date (DD/MM/YYYY)';
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === '3') {
-    inputTextContent = 'Enter end date (DD/MM/YYYY)';
+    inputTextContent = sessionData.endDate || 'Enter end date (DD/MM/YYYY)';
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === 'review') {
