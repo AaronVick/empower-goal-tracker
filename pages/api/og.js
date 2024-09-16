@@ -16,9 +16,13 @@ export default async function handler(req) {
     console.log('Error parameter:', error);
     console.log('Step parameter:', step);
 
+    const baseUrl = new URL(req.url).origin;
+    const staticImageUrl = new URL('/addGoal.png', baseUrl);
+
     if (!error && (step === 'start' || step === 'startDate' || step === 'endDate')) {
       console.log('Returning static image for step:', step);
-      return NextResponse.redirect(new URL('/addGoal.png', req.url));
+      console.log('Static image URL:', staticImageUrl.toString());
+      return NextResponse.redirect(staticImageUrl);
     }
 
     if (error) {
@@ -68,7 +72,8 @@ export default async function handler(req) {
     }
 
     console.log('Returning fallback static image');
-    return NextResponse.redirect(new URL('/addGoal.png', req.url));
+    console.log('Fallback image URL:', staticImageUrl.toString());
+    return NextResponse.redirect(staticImageUrl);
   } catch (e) {
     console.error('Error in OG Image Generator:', e);
     return new Response(`Failed to generate image: ${e.message}`, { status: 500 });

@@ -31,47 +31,60 @@ export default async function handler(req, res) {
       // Handle navigation and inputs
       if (sessionData.currentStep === 'start') {
         if (buttonIndex === 2 && inputText.trim()) {
-          sessionData.goal = inputText;
+          sessionData.goal = inputText.trim();
           sessionData.currentStep = 'startDate';
+          console.log('Moving to startDate step');
         } else if (buttonIndex === 2) {
           error = 'no_goal';
+          console.log('Error: No goal provided');
         }
       } else if (sessionData.currentStep === 'startDate') {
         if (buttonIndex === 2 && isValidDateFormat(inputText)) {
           sessionData.startDate = inputText;
           sessionData.currentStep = 'endDate';
+          console.log('Moving to endDate step');
         } else if (buttonIndex === 2) {
           error = 'invalid_start_date';
+          console.log('Error: Invalid start date format');
         } else if (buttonIndex === 1) {
           sessionData.currentStep = 'start';
+          console.log('Moving back to start step');
         }
       } else if (sessionData.currentStep === 'endDate') {
         if (buttonIndex === 2 && isValidDateFormat(inputText)) {
           sessionData.endDate = inputText;
           sessionData.currentStep = 'review';
+          console.log('Moving to review step');
         } else if (buttonIndex === 2) {
           error = 'invalid_end_date';
+          console.log('Error: Invalid end date format');
         } else if (buttonIndex === 1) {
           sessionData.currentStep = 'startDate';
+          console.log('Moving back to startDate step');
         }
       } else if (sessionData.currentStep === 'review') {
         if (buttonIndex === 2) {
           sessionData.currentStep = 'success';
+          console.log('Moving to success step');
         } else if (buttonIndex === 1) {
           sessionData.currentStep = 'endDate';
+          console.log('Moving back to endDate step');
         }
       }
 
       if (error) {
         sessionData.currentStep = 'error';
+        console.log('Setting error state:', error);
       }
 
       console.log('Updated session data:', sessionData);
 
       // Update session data in Firebase
       await sessionRef.set(sessionData);
+      console.log('Session data updated in Firebase');
 
       const html = generateHtml(sessionData, baseUrl, error);
+      console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');
       res.status(200).send(html);
     } catch (firebaseError) {
@@ -91,7 +104,7 @@ function generateHtml(sessionData, baseUrl, error) {
   let imageUrl, inputTextContent, button1Content, button2Content;
 
   if (error) {
-    imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.currentStep}`;
+    imageUrl = `${baseUrl}/api/og?error=${encodeURIComponent(error)}&step=${encodeURIComponent(sessionData.currentStep)}`;
     inputTextContent = "Error occurred, please try again.";
     button1Content = "Home";
     button2Content = "Retry";
