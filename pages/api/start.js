@@ -9,14 +9,19 @@ export default async function handler(req, res) {
     let error = null;
     let untrustedData, buttonIndex, inputText, fid;
 
+    // Added logging for debugging
+    console.log('Request Method:', req.method);
+
     if (req.method === 'POST') {
       ({ untrustedData } = req.body);
       buttonIndex = parseInt(untrustedData.buttonIndex);
       inputText = untrustedData.inputText || '';
       fid = untrustedData.fid;
+      console.log('POST Request - Button Index:', buttonIndex, 'Input Text:', inputText);
     } else {
       ({ buttonIndex, inputText, fid } = req.query);
       buttonIndex = parseInt(buttonIndex || '0');
+      console.log('GET Request - Button Index:', buttonIndex, 'Input Text:', inputText);
     }
 
     // Fetch session for current user
@@ -24,6 +29,7 @@ export default async function handler(req, res) {
     let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
 
     currentStep = sessionData.stepGoal || 'start';
+    console.log('Current Step:', currentStep);
 
     if (currentStep === 'error') {
       currentStep = sessionData.stepGoal;
@@ -33,16 +39,20 @@ export default async function handler(req, res) {
         sessionData.goal = inputText;
         sessionData.stepGoal = '2';
         currentStep = '2';
+        console.log('Goal Set - Moving to Step 2');
       } else if (buttonIndex === 2) {
         error = 'no_goal';
+        console.log('Error: No goal entered');
       }
     } else if (currentStep === '2') {
       if (buttonIndex === 2 && isValidDateFormat(inputText)) {
         sessionData.startDate = inputText;
         sessionData.stepGoal = '3';
         currentStep = '3';
+        console.log('Start Date Set - Moving to Step 3');
       } else if (buttonIndex === 2) {
         error = 'invalid_start_date';
+        console.log('Error: Invalid start date');
       } else if (buttonIndex === 1) {
         sessionData.stepGoal = 'start';
         currentStep = 'start';
@@ -52,8 +62,10 @@ export default async function handler(req, res) {
         sessionData.endDate = inputText;
         sessionData.stepGoal = 'review';
         currentStep = 'review';
+        console.log('End Date Set - Moving to Review');
       } else if (buttonIndex === 2) {
         error = 'invalid_end_date';
+        console.log('Error: Invalid end date');
       } else if (buttonIndex === 1) {
         sessionData.stepGoal = '2';
         currentStep = '2';
@@ -105,7 +117,10 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
     button1Content = 'Edit';
     button2Content = 'Set Goal';
   }
-  
+
+  // Added debugging to see what HTML is generated
+  console.log('Generated HTML for currentStep:', currentStep);
+
   return `
     <!DOCTYPE html>
     <html>
