@@ -4,21 +4,20 @@ export default async function handler(req, res) {
   console.log('Goal Tracker API accessed');
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
   
-  // Check the request method
-  if (req.method !== 'POST') {
-    console.log('Invalid request method:', req.method);
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'GET' || req.method === 'POST') {
+    let currentStep = process.env.stepGoal || 'start';
+    let error = null;
+    let untrustedData, buttonIndex, inputText, fid;
 
-  // Handle POST request as usual
-  let currentStep = process.env.stepGoal || 'start';
-  let error = null;
-
-  if (req.method === 'POST') {
-    const { untrustedData } = req.body;
-    const buttonIndex = parseInt(untrustedData.buttonIndex);
-    const inputText = untrustedData.inputText || '';
-    const fid = untrustedData.fid || req.query.fid; // FID from session
+    if (req.method === 'POST') {
+      ({ untrustedData } = req.body);
+      buttonIndex = parseInt(untrustedData.buttonIndex);
+      inputText = untrustedData.inputText || '';
+      fid = untrustedData.fid;
+    } else {
+      ({ buttonIndex, inputText, fid } = req.query);
+      buttonIndex = parseInt(buttonIndex || '0');
+    }
 
     // Fetch session for current user
     const sessionRef = await db.collection('sessions').doc(fid).get();
@@ -63,6 +62,8 @@ export default async function handler(req, res) {
     const html = generateHtml(sessionData, baseUrl, error);
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
   }
 }
 
@@ -76,6 +77,25 @@ function generateHtml(sessionData, baseUrl, error) {
     const startDate = encodeURIComponent(sessionData.startDate);
     const endDate = encodeURIComponent(sessionData.endDate);
     imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
+  } else {
+    imageUrl = `${baseUrl}/api/og?step=${sessionData.stepGoal}`;
+  }
+
+  if (sessionData.stepGoal === 'start') {
+    inputTextContent = 'Enter your goal';
+    button1Content = 'Cancel';
+    button2Content = 'Next';
+  } else if (sessionData.stepGoal === '2') {
+    inputTextContent = 'Enter start date (DD/MM/YYYY)';
+    button1Content = 'Back';
+    button2Content = 'Next';
+  } else if (sessionData.stepGoal === '3') {
+    inputTextContent = 'Enter end date (DD/MM/YYYY)';
+    button1Content = 'Back';
+    button2Content = 'Next';
+  } else if (sessionData.stepGoal === 'review') {
+    button1Content = 'Edit';
+    button2Content = 'Set Goal';
   }
   
   return `
@@ -84,6 +104,9 @@ function generateHtml(sessionData, baseUrl, error) {
       <head>
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
+        ${inputTextContent ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
+        <meta property="fc:frame:button:1" content="${button1Content}" />
+        <meta property="fc:frame:button:2" content="${button2Content}" />
         <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
       </head>
     </html>

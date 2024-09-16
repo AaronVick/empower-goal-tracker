@@ -4,11 +4,13 @@ import { Timestamp } from 'firebase-admin/firestore';
 export default async function handler(req, res) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
-  if (req.method === 'POST') {
-    console.log('Set Goal API accessed');
-    console.log('Request Body:', req.body);
+  console.log('Set Goal API accessed');
+  console.log('Request Method:', req.method);
+  console.log('Request Body:', req.body);
+  console.log('Request Query:', req.query);
 
-    const { untrustedData } = req.body;
+  if (req.method === 'GET' || req.method === 'POST') {
+    const untrustedData = req.method === 'POST' ? req.body.untrustedData : req.query;
 
     try {
       const userFID = untrustedData.fid;
@@ -49,7 +51,7 @@ export default async function handler(req, res) {
         startDate: startTimestamp,
         endDate: endTimestamp,
         createdAt: Timestamp.now(),
-        completed: false, // Added this line
+        completed: false,
       });
 
       const goalId = goalRef.id;
