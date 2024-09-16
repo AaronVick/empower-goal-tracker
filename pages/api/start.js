@@ -3,7 +3,7 @@ import { db } from '../../lib/firebase';
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed');
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-  let currentStep = process.env.stepGoal || 'start';
+  let currentStep = 'start';
   let error = null;
 
   if (req.method === 'POST') {
@@ -28,43 +28,48 @@ export default async function handler(req, res) {
       console.log('Current session data:', sessionData);
 
       // Handle navigation and inputs
-      if (currentStep === 'error') {
-        currentStep = sessionData.stepGoal;
-        error = null;
-      } else if (currentStep === 'start') {
+      if (sessionData.stepGoal === 'start') {
         if (buttonIndex === 2 && inputText.trim()) {
           sessionData.goal = inputText;
           sessionData.stepGoal = '2';
-        } else {
+        } else if (buttonIndex === 2) {
           error = 'no_goal';
-          sessionData.stepGoal = 'start';
         }
-      } else if (currentStep === '2' && buttonIndex === 2) {
-        if (isValidDateFormat(inputText)) {
+      } else if (sessionData.stepGoal === '2') {
+        if (buttonIndex === 2 && isValidDateFormat(inputText)) {
           sessionData.startDate = inputText;
           sessionData.stepGoal = '3';
-        } else {
+        } else if (buttonIndex === 2) {
           error = 'invalid_start_date';
-          sessionData.stepGoal = '2';
+        } else if (buttonIndex === 1) {
+          sessionData.stepGoal = 'start';
         }
-      } else if (currentStep === '3' && buttonIndex === 2) {
-        if (isValidDateFormat(inputText)) {
+      } else if (sessionData.stepGoal === '3') {
+        if (buttonIndex === 2 && isValidDateFormat(inputText)) {
           sessionData.endDate = inputText;
           sessionData.stepGoal = 'review';
-        } else {
+        } else if (buttonIndex === 2) {
           error = 'invalid_end_date';
+        } else if (buttonIndex === 1) {
+          sessionData.stepGoal = '2';
+        }
+      } else if (sessionData.stepGoal === 'review') {
+        if (buttonIndex === 2) {
+          // Here you would typically save the goal to Firebase
+          sessionData.stepGoal = 'success';
+        } else if (buttonIndex === 1) {
           sessionData.stepGoal = '3';
         }
+      }
+
+      if (error) {
+        sessionData.stepGoal = 'error';
       }
 
       console.log('Updated session data:', sessionData);
 
       // Update session data in Firebase
       await sessionRef.set(sessionData);
-
-      if (error) {
-        currentStep = 'error';
-      }
 
       const html = generateHtml(sessionData, baseUrl, error);
       res.setHeader('Content-Type', 'text/html');
@@ -73,13 +78,20 @@ export default async function handler(req, res) {
       console.error('Error updating session in Firebase:', firebaseError);
       return res.status(500).json({ error: 'Failed to update session', details: firebaseError.message });
     }
+  } else if (req.method === 'GET') {
+    // Handle GET request for initial frame
+    const html = generateHtml({ stepGoal: 'start' }, baseUrl);
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(html);
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }
 }
 
 function generateHtml(sessionData, baseUrl, error) {
-  let imageUrl, inputTextContent, button1Content, button2Content;
+  let imageUrl, inputTextContent, button1Content, button2Content, postUrl;
+
+  postUrl = `${baseUrl}/api/start`;
 
   if (error) {
     imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.stepGoal}`;
@@ -108,6 +120,11 @@ function generateHtml(sessionData, baseUrl, error) {
     imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
     button1Content = "Back";
     button2Content = "Set Goal";
+  } else if (sessionData.stepGoal === 'success') {
+    imageUrl = `${baseUrl}/api/successImage`;
+    button1Content = "Home";
+    button2Content = "Share";
+    postUrl = `${baseUrl}/api/share`;
   }
 
   return `
@@ -116,11 +133,14 @@ function generateHtml(sessionData, baseUrl, error) {
     <head>
       <meta property="fc:frame" content="vNext" />
       <meta property="fc:frame:image" content="${imageUrl}" />
-      <meta property="fc:frame:input:text" content="${inputTextContent}" />
+      ${inputTextContent ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
       <meta property="fc:frame:button:1" content="${button1Content}" />
       <meta property="fc:frame:button:2" content="${button2Content}" />
-      <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
+      <meta property="fc:frame:post_url" content="${postUrl}" />
     </head>
+    <body>
+      <p>This is a Farcaster Frame for the Goal Tracker app.</p>
+    </body>
   </html>
 `;
 }
