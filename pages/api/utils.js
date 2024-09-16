@@ -21,9 +21,9 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
       button2Content = "Next";
       break;
     case 'review':
-      const goal = encodeURIComponent(sessionData.goal);
-      const startDate = encodeURIComponent(sessionData.startDate);
-      const endDate = encodeURIComponent(sessionData.endDate);
+      const goal = encodeURIComponent(sessionData.goal || '');
+      const startDate = encodeURIComponent(sessionData.startDate || '');
+      const endDate = encodeURIComponent(sessionData.endDate || '');
       imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
       inputTextContent = null;
       button1Content = "Back";

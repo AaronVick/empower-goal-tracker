@@ -1,5 +1,5 @@
 import { db } from '../../lib/firebase';
-import { generateHtml, isValidDateFormat } from './utils';  // Ensure isValidDateFormat is imported
+import { generateHtml, isValidDateFormat } from './utils';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed - Start Date Step');
@@ -25,35 +25,33 @@ export default async function handler(req, res) {
       const sessionSnapshot = await sessionRef.get();
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'startDate' };
 
-      // Handle the "Next" button press with valid date input
+      // Handle button actions
       if (buttonIndex === 2) {
-        if (isValidDateFormat(inputText)) {  // Ensure this function is called correctly
-          sessionData.startDate = inputText;  // Store the valid start date
-          sessionData.currentStep = 'endDate';  // Move to the next step (endDate)
-          sessionData.error = null;  // Clear any existing errors
-          await sessionRef.set(sessionData);  // Update session in Firebase
-
-          // Redirect to the endDate frame (only once)
+        // Next button pressed
+        if (isValidDateFormat(inputText)) {
+          sessionData.startDate = inputText;
+          sessionData.currentStep = 'endDate';
+          sessionData.error = null;
+          await sessionRef.set(sessionData);
           console.log('Moving to endDate step');
           return res.redirect(307, `${baseUrl}/api/endDate`);
         } else {
-          sessionData.error = 'invalid_start_date';
           console.log('Error: Invalid start date format');
+          sessionData.error = 'invalid_start_date';
         }
-      }
-
-      // Handle the "Back" button press
-      if (buttonIndex === 1) {
+      } else if (buttonIndex === 1) {
+        // Back button pressed
         sessionData.currentStep = 'start';
         await sessionRef.set(sessionData);
         console.log('Moving back to start step');
         return res.redirect(307, `${baseUrl}/api/start`);
       }
 
+      // If we're here, either there was an error or it's the initial load
       console.log('Updated session data:', sessionData);
       await sessionRef.set(sessionData);
 
-      // Render the frame with error if applicable
+      // For the initial load or error case, we don't validate the date
       const html = generateHtml('startDate', sessionData, baseUrl, sessionData.error);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');

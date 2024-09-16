@@ -23,30 +23,22 @@ export default async function handler(req, res) {
     try {
       const sessionRef = db.collection('sessions').doc(fid.toString());
       const sessionSnapshot = await sessionRef.get();
-      let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'start' };
+      let sessionData = sessionSnapshot.exists ? sessionData = sessionSnapshot.data() : { fid, currentStep: 'start' };
 
-      console.log('Current session data:', sessionData);
-
-      // If the user clicks "Next" and a goal is entered, update the session and move to startDate
       if (buttonIndex === 2 && inputText.trim()) {
         sessionData.goal = inputText.trim();
-        sessionData.currentStep = 'startDate';  // Set the next step to 'startDate'
-        sessionData.error = null;  // Clear any existing errors
-        await sessionRef.set(sessionData);  // Update the session in Firebase
-
-        // Redirect to the startDate frame (only once)
+        sessionData.currentStep = 'startDate';
+        sessionData.error = null;
+        await sessionRef.set(sessionData);
         console.log('Moving to startDate step');
         return res.redirect(307, `${baseUrl}/api/startDate`);
       } else if (buttonIndex === 2) {
-        // If the goal is not provided, show an error
         console.log('Error: No goal provided');
         sessionData.error = 'no_goal';
       }
 
-      // Update session with the current state and error
       await sessionRef.set(sessionData);
 
-      // Render the current frame with error if needed
       const html = generateHtml('start', sessionData, baseUrl, sessionData.error);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');
@@ -56,8 +48,7 @@ export default async function handler(req, res) {
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'GET') {
-    // Render the initial start step
-    const html = generateHtml('start', { currentStep: 'start', goal: '' }, baseUrl);
+    const html = generateHtml('start', { currentStep: 'start' }, baseUrl);
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
   } else {
