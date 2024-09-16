@@ -25,17 +25,18 @@ export default async function handler(req, res) {
       const sessionSnapshot = await sessionRef.get();
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'startDate' };
 
-      // Check for the "Next" button press
+      // Handle the "Next" button press with valid date input
       if (buttonIndex === 2) {
         if (isValidDateFormat(inputText)) {
           sessionData.startDate = inputText;  // Store the valid start date
-          sessionData.currentStep = 'endDate';  // Move to the next step
+          sessionData.currentStep = 'endDate';  // Move to the next step (endDate)
           sessionData.error = null;  // Clear any existing errors
           await sessionRef.set(sessionData);  // Update session in Firebase
+
+          // Redirect to the endDate frame (only once)
           console.log('Moving to endDate step');
           return res.redirect(307, `${baseUrl}/api/endDate`);
         } else {
-          // Handle invalid date error
           sessionData.error = 'invalid_start_date';
           console.log('Error: Invalid start date format');
         }
