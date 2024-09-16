@@ -10,9 +10,14 @@ export default async function handler(req, res) {
         const { untrustedData } = req.body;
         const buttonIndex = parseInt(untrustedData.buttonIndex);
         const inputText = untrustedData.inputText || '';
-        const fid = untrustedData.fid || req.query.fid; // Retrieve FID from session
+        const fid = untrustedData.fid || req.query.fid; // Ensure fid is provided or passed in query
 
-        // Fetch session for current user
+        if (!fid) {
+            console.error('FID not provided');
+            return res.status(400).json({ error: 'FID is required' });
+        }
+
+        // Fetch or initialize session for current user
         const sessionRef = await db.collection('sessions').doc(fid).get();
         let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
 
@@ -46,7 +51,12 @@ export default async function handler(req, res) {
         }
 
         // Update session data in Firebase
-        await db.collection('sessions').doc(fid).set(sessionData);
+        try {
+            await db.collection('sessions').doc(fid).set(sessionData);
+        } catch (firebaseError) {
+            console.error('Error updating session in Firebase:', firebaseError);
+            return res.status(500).json({ error: 'Failed to update session' });
+        }
 
         if (error) {
             currentStep = 'error';
@@ -55,6 +65,8 @@ export default async function handler(req, res) {
         const html = generateHtml(sessionData, baseUrl, error);
         res.setHeader('Content-Type', 'text/html');
         res.status(200).send(html);
+    } else {
+        res.status(405).json({ error: 'Method not allowed' });
     }
 }
 
@@ -63,13 +75,22 @@ function generateHtml(sessionData, baseUrl, error) {
 
     if (error) {
         imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.stepGoal}`;
+        inputTextContent = "Error occurred";
     } else if (sessionData.stepGoal === 'review') {
         const goal = encodeURIComponent(sessionData.goal);
         const startDate = encodeURIComponent(sessionData.startDate);
         const endDate = encodeURIComponent(sessionData.endDate);
         imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
-    } else {
+        inputTextContent = "Review your goal";
+    } else if (sessionData.stepGoal === 'start') {
         imageUrl = `${baseUrl}/empower.png`;
+        inputTextContent = "Enter your goal";
+    } else if (sessionData.stepGoal === '2') {
+        imageUrl = `${baseUrl}/empower.png`;
+        inputTextContent = "Enter start date (dd/mm/yyyy)";
+    } else if (sessionData.stepGoal === '3') {
+        imageUrl = `${baseUrl}/empower.png`;
+        inputTextContent = "Enter end date (dd/mm/yyyy)";
     }
 
     return `
@@ -78,7 +99,7 @@ function generateHtml(sessionData, baseUrl, error) {
         <head>
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${imageUrl}" />
-            <meta property="fc:frame:input:text" content="Enter your goal" />
+            <meta property="fc:frame:input:text" content="${inputTextContent}" />
             <meta property="fc:frame:input:text:value" content="${sessionData.goal || ''}" />
             <meta property="fc:frame:button:1" content="Cancel" />
             <meta property="fc:frame:button:2" content="Next" />
