@@ -1,3 +1,5 @@
+import { db } from '../lib/firebase';
+
 export default function Home() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
@@ -8,11 +10,50 @@ export default function Home() {
         <meta property="fc:frame:image" content={`${baseUrl}/api/image`} />
         <meta property="fc:frame:button:1" content="Start a Goal" />
         <meta property="fc:frame:button:2" content="Review Goals" />
-        <meta property="fc:frame:post_url" content={`${baseUrl}/api`} />
+        <meta property="fc:frame:post_url" content={`${baseUrl}/api/start`} />
       </head>
       <body>
         <h1>Welcome to Empower Goal Tracker</h1>
       </body>
     </html>
   );
+}
+
+export async function getServerSideProps(context) {
+  if (context.req.method === 'POST') {
+    const { untrustedData } = context.req.body;
+    const buttonIndex = parseInt(untrustedData.buttonIndex);
+    const fid = untrustedData.fid;
+
+    if (buttonIndex === 1) {
+      // "Start a Goal" was clicked
+      console.log('Start a Goal button clicked');
+
+      // Initialize a session for the user
+      await db.collection('sessions').doc(fid.toString()).set({
+        stepGoal: 'start',
+        fid: fid
+      });
+
+      return {
+        props: {},
+        redirect: {
+          destination: '/api/start',
+          permanent: false,
+        },
+      };
+    } else if (buttonIndex === 2) {
+      // "Review Goals" was clicked
+      console.log('Review Goals button clicked');
+      return {
+        props: {},
+        redirect: {
+          destination: `/api/reviewGoals?fid=${fid}`,
+          permanent: false,
+        },
+      };
+    }
+  }
+
+  return { props: {} };
 }

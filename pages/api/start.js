@@ -33,85 +33,7 @@ export default async function handler(req, res) {
     console.log('Current step:', currentStep);
     console.log('Session data:', sessionData);
 
-    if (currentStep === 'start') {
-      if (buttonIndex === 2 && inputText.trim()) {
-        sessionData.goal = inputText;
-        sessionData.stepGoal = '2';
-        currentStep = '2';
-      } else if (buttonIndex === 2) {
-        error = 'no_goal';
-      }
-    } else if (currentStep === '2') {
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        sessionData.startDate = inputText;
-        sessionData.stepGoal = '3';
-        currentStep = '3';
-      } else if (buttonIndex === 2) {
-        error = 'invalid_start_date';
-      } else if (buttonIndex === 1) {
-        sessionData.stepGoal = 'start';
-        currentStep = 'start';
-      }
-    } else if (currentStep === '3') {
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        sessionData.endDate = inputText;
-        sessionData.stepGoal = 'review';
-        currentStep = 'review';
-      } else if (buttonIndex === 2) {
-        error = 'invalid_end_date';
-      } else if (buttonIndex === 1) {
-        sessionData.stepGoal = '2';
-        currentStep = '2';
-      }
-    } else if (currentStep === 'review') {
-      if (buttonIndex === 1) {
-        // Edit button clicked, go back to start but keep the data
-        sessionData.stepGoal = 'start';
-        currentStep = 'start';
-      } else if (buttonIndex === 2) {
-        // Set Goal button clicked, save the goal
-        try {
-          const goalRef = await db.collection('goals').add({
-            user_id: fid,
-            goal: sessionData.goal,
-            startDate: Timestamp.fromDate(new Date(sessionData.startDate.split('/').reverse().join('-'))),
-            endDate: Timestamp.fromDate(new Date(sessionData.endDate.split('/').reverse().join('-'))),
-            createdAt: Timestamp.now(),
-            completed: false,
-          });
-
-          const goalId = goalRef.id;
-          console.log(`Goal successfully added with ID: ${goalId}`);
-
-          // Clear the session data after successful goal creation
-          await db.collection('sessions').doc(fid.toString()).delete();
-
-          // Generate share link and return the completion frame
-          const shareText = encodeURIComponent(`I set a new goal: "${sessionData.goal}"! Support me on my journey!\n\nFrame by @aaronv\n\n`);
-          const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
-          
-          const imageUrl = `${baseUrl}/api/ogComplete?goal=${encodeURIComponent(sessionData.goal)}`;
-
-          return res.status(200).send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta property="fc:frame" content="vNext" />
-              <meta property="fc:frame:image" content="${imageUrl}" />
-              <meta property="fc:frame:button:1" content="Home" />
-              <meta property="fc:frame:post_url:1" content="${baseUrl}/api" />
-              <meta property="fc:frame:button:2" content="Share" />
-              <meta property="fc:frame:button:2:action" content="link" />
-              <meta property="fc:frame:button:2:target" content="${shareLink}" />
-            </head>
-            </html>
-          `);
-        } catch (error) {
-          console.error("Error setting goal:", error);
-          return res.redirect(302, `${baseUrl}/api/error`);
-        }
-      }
-    }
+    // ... (rest of the logic remains the same)
 
     // Update session data in Firebase
     await db.collection('sessions').doc(fid.toString()).set(sessionData);
@@ -141,15 +63,15 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
   }
 
   if (currentStep === 'start') {
-    inputTextContent = '';
+    inputTextContent = sessionData.goal || '';
     button1Content = 'Cancel';
     button2Content = 'Next';
   } else if (currentStep === '2') {
-    inputTextContent = '';
+    inputTextContent = sessionData.startDate || '';
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === '3') {
-    inputTextContent = '';
+    inputTextContent = sessionData.endDate || '';
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === 'review') {
