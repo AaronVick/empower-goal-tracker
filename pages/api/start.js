@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
     // Fetch session for current user
     const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
-    let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep: 'start', stepGoal: 'start' };
+    let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep: 'start' };
 
     currentStep = sessionData.currentStep || 'start';
 
@@ -153,6 +153,7 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === 'review') {
+    inputTextContent = '';
     button1Content = 'Edit';
     button2Content = 'Set Goal';
   }
