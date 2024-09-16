@@ -37,7 +37,6 @@ export default async function handler(req, res) {
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/og?step=start" />
           <meta property="fc:frame:input:text" content="" />
-          <meta property="fc:frame:input:placeholder" content="Enter your goal" />
           <meta property="fc:frame:button:1" content="Cancel" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
