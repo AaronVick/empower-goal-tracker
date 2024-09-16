@@ -1,4 +1,5 @@
 import { ImageResponse } from '@vercel/og';
+import { NextResponse } from 'next/server';
 
 export const config = {
   runtime: 'edge',
@@ -15,58 +16,65 @@ export default async function handler(req) {
     console.log('Error parameter:', error);
     console.log('Step parameter:', step);
 
-    if (!error) {
-      return new Response('Missing error parameter', { status: 400 });
+    // Use static image for goal-setting steps
+    if (!error && (step === 'start' || step === '2' || step === '3')) {
+      console.log('Returning static image for step:', step);
+      return NextResponse.redirect(new URL('/addGoal.png', req.url));
     }
 
-    let message;
-    switch (error) {
-      case 'no_goal':
-        message = 'Please enter a goal';
-        break;
-      case 'invalid_start_date':
-        message = 'Please enter a valid start date (dd/mm/yyyy)';
-        break;
-      case 'invalid_end_date':
-        message = 'Please enter a valid end date (dd/mm/yyyy)';
-        break;
-      default:
-        message = 'An error occurred';
-    }
-
-    console.log('Generated message:', message);
-
-    const imageResponse = new ImageResponse(
-      (
-        <div
-          style={{
-            fontSize: 60,
-            color: 'white',
-            background: 'linear-gradient(to bottom, #1E2E3D, #2D3E4D)',
-            width: '100%',
-            height: '100%',
-            padding: '50px 200px',
-            textAlign: 'center',
-            justifyContent: 'center',
-            alignItems: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <h1 style={{ marginBottom: '20px' }}>Error in Step {step}</h1>
-          <p style={{ fontSize: '40px' }}>{message}</p>
-        </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
+    // Generate dynamic image for errors
+    if (error) {
+      let message;
+      switch (error) {
+        case 'no_goal':
+          message = 'Please enter a goal';
+          break;
+        case 'invalid_start_date':
+          message = 'Please enter a valid start date (dd/mm/yyyy)';
+          break;
+        case 'invalid_end_date':
+          message = 'Please enter a valid end date (dd/mm/yyyy)';
+          break;
+        default:
+          message = 'An error occurred';
       }
-    );
 
-    console.log('Image generated successfully');
-    return imageResponse;
+      console.log('Generating error image with message:', message);
+
+      return new ImageResponse(
+        (
+          <div
+            style={{
+              fontSize: 60,
+              color: 'white',
+              background: 'linear-gradient(to bottom, #1E2E3D, #2D3E4D)',
+              width: '100%',
+              height: '100%',
+              padding: '50px 200px',
+              textAlign: 'center',
+              justifyContent: 'center',
+              alignItems: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <h1 style={{ marginBottom: '20px' }}>Error</h1>
+            <p style={{ fontSize: '40px' }}>{message}</p>
+          </div>
+        ),
+        {
+          width: 1200,
+          height: 630,
+        }
+      );
+    }
+
+    // For any other cases, return the static image
+    console.log('Returning static image for unhandled case');
+    return NextResponse.redirect(new URL('/addGoal.png', req.url));
+
   } catch (e) {
-    console.error('Error generating image:', e);
+    console.error('Error in OG Image Generator:', e);
     return new Response(`Failed to generate image: ${e.message}`, { status: 500 });
   }
 }
