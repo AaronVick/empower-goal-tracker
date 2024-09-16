@@ -65,11 +65,9 @@ export default async function handler(req, res) {
       }
     } else if (currentStep === 'review') {
       if (buttonIndex === 1) {
-        // Edit button clicked, go back to start but keep the data
         sessionData.currentStep = 'start';
         currentStep = 'start';
       } else if (buttonIndex === 2) {
-        // Set Goal button clicked, save the goal
         try {
           const goalRef = await db.collection('goals').add({
             user_id: fid,
@@ -83,10 +81,8 @@ export default async function handler(req, res) {
           const goalId = goalRef.id;
           console.log(`Goal successfully added with ID: ${goalId}`);
 
-          // Clear the session data after successful goal creation
           await db.collection('sessions').doc(fid.toString()).delete();
 
-          // Generate share link and return the completion frame
           const shareText = encodeURIComponent(`I set a new goal: "${sessionData.goal}"! Support me on my journey!\n\nFrame by @aaronv\n\n`);
           const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
           
@@ -99,7 +95,7 @@ export default async function handler(req, res) {
               <meta property="fc:frame" content="vNext" />
               <meta property="fc:frame:image" content="${imageUrl}" />
               <meta property="fc:frame:button:1" content="Home" />
-              <meta property="fc:frame:post_url:1" content="${baseUrl}" />
+              <meta property="fc:frame:post_url:1" content="${baseUrl}/api" />
               <meta property="fc:frame:button:2" content="Share" />
               <meta property="fc:frame:button:2:action" content="link" />
               <meta property="fc:frame:button:2:target" content="${shareLink}" />
@@ -153,7 +149,6 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === 'review') {
-    inputTextContent = '';
     button1Content = 'Edit';
     button2Content = 'Set Goal';
   }
@@ -164,7 +159,7 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
       <head>
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
-        <meta property="fc:frame:input:text" content="${inputTextContent}" />
+        ${currentStep !== 'review' ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
         <meta property="fc:frame:button:1" content="${button1Content}" />
         <meta property="fc:frame:button:2" content="${button2Content}" />
         <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
