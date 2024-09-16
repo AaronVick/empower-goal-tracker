@@ -25,18 +25,24 @@ export default async function handler(req, res) {
       const sessionSnapshot = await sessionRef.get();
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'endDate' };
 
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        // User clicked Next and provided valid end date
-        sessionData.endDate = inputText;
-        sessionData.currentStep = 'review';  // Move to next step
-        await sessionRef.set(sessionData);
-        console.log('Moving to review step');
-        return res.redirect(307, `${baseUrl}/api/review`);
-      } else if (buttonIndex === 2) {
-        console.log('Error: Invalid end date format');
-        sessionData.error = 'invalid_end_date';
-      } else if (buttonIndex === 1) {
-        // User clicked Back, return to startDate step
+      // Check for the "Next" button press
+      if (buttonIndex === 2) {
+        if (isValidDateFormat(inputText)) {
+          sessionData.endDate = inputText;  // Store the valid end date
+          sessionData.currentStep = 'review';  // Move to the next step (review)
+          sessionData.error = null;  // Clear any existing errors
+          await sessionRef.set(sessionData);  // Update session in Firebase
+          console.log('Moving to review step');
+          return res.redirect(307, `${baseUrl}/api/review`);
+        } else {
+          // Handle invalid date error
+          sessionData.error = 'invalid_end_date';
+          console.log('Error: Invalid end date format');
+        }
+      }
+
+      // Handle the "Back" button press
+      if (buttonIndex === 1) {
         sessionData.currentStep = 'startDate';
         await sessionRef.set(sessionData);
         console.log('Moving back to startDate step');
@@ -46,6 +52,7 @@ export default async function handler(req, res) {
       console.log('Updated session data:', sessionData);
       await sessionRef.set(sessionData);
 
+      // Render the frame with error if applicable
       const html = generateHtml('endDate', sessionData, baseUrl, sessionData.error);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');

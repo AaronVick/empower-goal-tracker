@@ -1,5 +1,5 @@
 export function generateHtml(step, sessionData, baseUrl, error = null) {
-  let imageUrl, inputTextContent, button1Content, button2Content, button3Content;
+  let imageUrl, inputTextContent, button1Content, button2Content;
 
   switch (step) {
     case 'start':
@@ -24,14 +24,10 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
       const goal = encodeURIComponent(sessionData.goal);
       const startDate = encodeURIComponent(sessionData.startDate);
       const endDate = encodeURIComponent(sessionData.endDate);
-      const completed = sessionData.completed ? 'true' : 'false';
-      const index = sessionData.currentIndex + 1;
-      const total = sessionData.totalGoals;
-      imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}&completed=${completed}&index=${index}&total=${total}`;
+      imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
       inputTextContent = null;
-      button1Content = "Previous";
-      button2Content = "Next";
-      button3Content = sessionData.completed ? "Completed" : "Complete";
+      button1Content = "Back";
+      button2Content = "Set Goal";
       break;
     case 'success':
       imageUrl = `${baseUrl}/api/successImage`;
@@ -63,13 +59,6 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
     ${inputTextContent !== null ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
     <meta property="fc:frame:button:1" content="${button1Content}" />
     <meta property="fc:frame:button:2" content="${button2Content}" />
-  `;
-
-  if (button3Content) {
-    html += `<meta property="fc:frame:button:3" content="${button3Content}" />`;
-  }
-
-  html += `
     <meta property="fc:frame:post_url" content="${baseUrl}/api/${step}" />
   </head>
   <body>
@@ -78,19 +67,4 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
 </html>`;
 
   return html;
-}
-
-export function isValidDateFormat(dateString) {
-  console.log('Validating date format:', dateString);
-  const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-  if (!regex.test(dateString)) {
-    console.log('Date format validation failed');
-    return false;
-  }
-
-  const [day, month, year] = dateString.split('/');
-  const date = new Date(year, month - 1, day);
-  const isValid = date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
-  console.log('Date validity:', isValid);
-  return isValid;
 }

@@ -25,18 +25,24 @@ export default async function handler(req, res) {
       const sessionSnapshot = await sessionRef.get();
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'startDate' };
 
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        // User clicked Next and provided valid start date
-        sessionData.startDate = inputText;
-        sessionData.currentStep = 'endDate';  // Move to next step
-        await sessionRef.set(sessionData);  // Update session in Firebase
-        console.log('Moving to endDate step');
-        return res.redirect(307, `${baseUrl}/api/endDate`);
-      } else if (buttonIndex === 2) {
-        console.log('Error: Invalid start date format');
-        sessionData.error = 'invalid_start_date';
-      } else if (buttonIndex === 1) {
-        // User clicked Back, return to start step
+      // Check for the "Next" button press
+      if (buttonIndex === 2) {
+        if (isValidDateFormat(inputText)) {
+          sessionData.startDate = inputText;  // Store the valid start date
+          sessionData.currentStep = 'endDate';  // Move to the next step
+          sessionData.error = null;  // Clear any existing errors
+          await sessionRef.set(sessionData);  // Update session in Firebase
+          console.log('Moving to endDate step');
+          return res.redirect(307, `${baseUrl}/api/endDate`);
+        } else {
+          // Handle invalid date error
+          sessionData.error = 'invalid_start_date';
+          console.log('Error: Invalid start date format');
+        }
+      }
+
+      // Handle the "Back" button press
+      if (buttonIndex === 1) {
         sessionData.currentStep = 'start';
         await sessionRef.set(sessionData);
         console.log('Moving back to start step');
@@ -46,7 +52,7 @@ export default async function handler(req, res) {
       console.log('Updated session data:', sessionData);
       await sessionRef.set(sessionData);
 
-      // Render the current frame with error if needed
+      // Render the frame with error if applicable
       const html = generateHtml('startDate', sessionData, baseUrl, sessionData.error);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');
