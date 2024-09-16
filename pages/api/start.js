@@ -8,12 +8,10 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { untrustedData } = req.body;
     const buttonIndex = parseInt(untrustedData.buttonIndex);
-    const inputText = untrustedData.inputText || '';
     const fid = untrustedData.fid;
 
     console.log('Received FID:', fid);
     console.log('Received button index:', buttonIndex);
-    console.log('Received input text:', inputText);
 
     if (!fid) {
       console.error('FID not provided');
@@ -23,30 +21,29 @@ export default async function handler(req, res) {
     try {
       const sessionRef = db.collection('sessions').doc(fid.toString());
       const sessionSnapshot = await sessionRef.get();
-      let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'start' };
 
-      console.log('Current session data:', sessionData);
+      let sessionData;
 
-      if (buttonIndex === 2 && inputText.trim()) {
-        // User clicked Next, goal provided
-        sessionData.goal = inputText.trim();
-        sessionData.currentStep = 'startDate';  // Set the next step
-        console.log('Moving to startDate step');
-        await sessionRef.set(sessionData);  // Update session in Firebase
-
-        // Redirect to the startDate frame
-        return res.redirect(307, `${baseUrl}/api/startDate`);
-      } else if (buttonIndex === 2) {
-        // If the goal is not provided, show an error
-        console.log('Error: No goal provided');
-        sessionData.error = 'no_goal';
+      // If there's an existing session but we're starting a new instance, reset the session
+      if (sessionSnapshot.exists) {
+        console.log('Resetting existing session for FID:', fid);
+        sessionData = { fid, currentStep: 'start', goal: '', error: null };  // Reset session data
+      } else {
+        console.log('Starting new session for FID:', fid);
+        sessionData = { fid, currentStep: 'start', goal: '', error: null };  // New session data
       }
 
-      console.log('Updated session data:', sessionData);
-      await sessionRef.set(sessionData);
+      console.log('Starting new session or resetting session:', sessionData);
+      await sessionRef.set(sessionData);  // Save new session data
 
-      // Render the current frame with error if needed
-      const html = generateHtml('start', sessionData, baseUrl, sessionData.error);
+      // Handle the "Start a Goal" step
+      if (buttonIndex === 2) {
+        console.log('Moving to goal entry step');
+        return res.redirect(307, `${baseUrl}/api/start`);
+      }
+
+      // Render the start frame (asking for a goal)
+      const html = generateHtml('start', sessionData, baseUrl);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');
       res.status(200).send(html);
@@ -55,7 +52,7 @@ export default async function handler(req, res) {
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'GET') {
-    const html = generateHtml('start', { currentStep: 'start' }, baseUrl);
+    const html = generateHtml('start', { currentStep: 'start', goal: '' }, baseUrl);
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
   } else {
