@@ -62,7 +62,7 @@ export default async function handler(req, res) {
                     <meta property="fc:frame" content="vNext" />
                     <meta property="fc:frame:image" content="${baseUrl}/api/successImage" />
                     <meta property="fc:frame:button:1" content="Home" />
-                    <meta property="fc:frame:button:1:action" content="link" />
+                    <meta property="fc:frame:button:1:action" />
                     <meta property="fc:frame:button:1:target" content="${baseUrl}" />
                     <meta property="fc:frame:button:2" content="Share on Warpcast" />
                     <meta property="fc:frame:button:2:action" content="link" />
