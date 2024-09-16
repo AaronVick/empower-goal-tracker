@@ -1,7 +1,12 @@
 import { db } from '../../lib/firebase';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed');
+  console.log('Request method:', req.method);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Request query:', JSON.stringify(req.query, null, 2));
+
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
   
   if (req.method === 'GET' || req.method === 'POST') {
@@ -9,50 +14,40 @@ export default async function handler(req, res) {
     let error = null;
     let untrustedData, buttonIndex, inputText, fid;
 
-    // Added logging for debugging
-    console.log('Request Method:', req.method);
-
     if (req.method === 'POST') {
       ({ untrustedData } = req.body);
       buttonIndex = parseInt(untrustedData.buttonIndex);
       inputText = untrustedData.inputText || '';
       fid = untrustedData.fid;
-      console.log('POST Request - Button Index:', buttonIndex, 'Input Text:', inputText);
     } else {
       ({ buttonIndex, inputText, fid } = req.query);
       buttonIndex = parseInt(buttonIndex || '0');
-      console.log('GET Request - Button Index:', buttonIndex, 'Input Text:', inputText);
     }
 
     // Fetch session for current user
-    const sessionRef = await db.collection('sessions').doc(fid).get();
+    const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
     let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
 
     currentStep = sessionData.stepGoal || 'start';
-    console.log('Current Step:', currentStep);
 
-    if (currentStep === 'error') {
-      currentStep = sessionData.stepGoal;
-      error = null;
-    } else if (currentStep === 'start') {
+    console.log('Current step:', currentStep);
+    console.log('Session data:', sessionData);
+
+    if (currentStep === 'start') {
       if (buttonIndex === 2 && inputText.trim()) {
         sessionData.goal = inputText;
         sessionData.stepGoal = '2';
         currentStep = '2';
-        console.log('Goal Set - Moving to Step 2');
       } else if (buttonIndex === 2) {
         error = 'no_goal';
-        console.log('Error: No goal entered');
       }
     } else if (currentStep === '2') {
       if (buttonIndex === 2 && isValidDateFormat(inputText)) {
         sessionData.startDate = inputText;
         sessionData.stepGoal = '3';
         currentStep = '3';
-        console.log('Start Date Set - Moving to Step 3');
       } else if (buttonIndex === 2) {
         error = 'invalid_start_date';
-        console.log('Error: Invalid start date');
       } else if (buttonIndex === 1) {
         sessionData.stepGoal = 'start';
         currentStep = 'start';
@@ -62,22 +57,66 @@ export default async function handler(req, res) {
         sessionData.endDate = inputText;
         sessionData.stepGoal = 'review';
         currentStep = 'review';
-        console.log('End Date Set - Moving to Review');
       } else if (buttonIndex === 2) {
         error = 'invalid_end_date';
-        console.log('Error: Invalid end date');
       } else if (buttonIndex === 1) {
         sessionData.stepGoal = '2';
         currentStep = '2';
       }
+    } else if (currentStep === 'review') {
+      if (buttonIndex === 1) {
+        // Edit button clicked, go back to start but keep the data
+        sessionData.stepGoal = 'start';
+        currentStep = 'start';
+      } else if (buttonIndex === 2) {
+        // Set Goal button clicked, save the goal
+        try {
+          const goalRef = await db.collection('goals').add({
+            user_id: fid,
+            goal: sessionData.goal,
+            startDate: Timestamp.fromDate(new Date(sessionData.startDate.split('/').reverse().join('-'))),
+            endDate: Timestamp.fromDate(new Date(sessionData.endDate.split('/').reverse().join('-'))),
+            createdAt: Timestamp.now(),
+            completed: false,
+          });
+
+          const goalId = goalRef.id;
+          console.log(`Goal successfully added with ID: ${goalId}`);
+
+          // Clear the session data after successful goal creation
+          await db.collection('sessions').doc(fid.toString()).delete();
+
+          // Generate share link and return the completion frame
+          const shareText = encodeURIComponent(`I set a new goal: "${sessionData.goal}"! Support me on my journey!\n\nFrame by @aaronv\n\n`);
+          const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
+          
+          const imageUrl = `${baseUrl}/api/ogComplete?goal=${encodeURIComponent(sessionData.goal)}`;
+
+          return res.status(200).send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta property="fc:frame" content="vNext" />
+              <meta property="fc:frame:image" content="${imageUrl}" />
+              <meta property="fc:frame:button:1" content="Home" />
+              <meta property="fc:frame:post_url:1" content="${baseUrl}/api" />
+              <meta property="fc:frame:button:2" content="Share" />
+              <meta property="fc:frame:button:2:action" content="link" />
+              <meta property="fc:frame:button:2:target" content="${shareLink}" />
+            </head>
+            </html>
+          `);
+        } catch (error) {
+          console.error("Error setting goal:", error);
+          return res.redirect(302, `${baseUrl}/api/error`);
+        }
+      }
     }
 
     // Update session data in Firebase
-    await db.collection('sessions').doc(fid).set(sessionData);
+    await db.collection('sessions').doc(fid.toString()).set(sessionData);
 
-    if (error) {
-      currentStep = 'error';
-    }
+    console.log('Updated session data:', sessionData);
 
     const html = generateHtml(sessionData, baseUrl, error, currentStep);
     res.setHeader('Content-Type', 'text/html');
@@ -102,24 +141,22 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
   }
 
   if (currentStep === 'start') {
-    inputTextContent = 'Enter your goal';
+    inputTextContent = sessionData.goal || 'Enter your goal';
     button1Content = 'Cancel';
     button2Content = 'Next';
   } else if (currentStep === '2') {
-    inputTextContent = 'Enter start date (DD/MM/YYYY)';
+    inputTextContent = sessionData.startDate || 'Enter start date (DD/MM/YYYY)';
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === '3') {
-    inputTextContent = 'Enter end date (DD/MM/YYYY)';
+    inputTextContent = sessionData.endDate || 'Enter end date (DD/MM/YYYY)';
     button1Content = 'Back';
     button2Content = 'Next';
   } else if (currentStep === 'review') {
     button1Content = 'Edit';
     button2Content = 'Set Goal';
   }
-
-  console.log('Generated HTML for currentStep:', currentStep);
-
+  
   return `
     <!DOCTYPE html>
     <html>
