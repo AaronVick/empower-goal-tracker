@@ -1,120 +1,55 @@
 import { db } from '../../lib/firebase';
-import { Timestamp } from 'firebase-admin/firestore';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed');
-  console.log('Request method:', req.method);
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
-  console.log('Request query:', JSON.stringify(req.query, null, 2));
-
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-  
-  if (req.method === 'GET' || req.method === 'POST') {
-    let currentStep = 'start';
-    let error = null;
-    let untrustedData, buttonIndex, inputText, fid;
+  let currentStep = 'start';
+  let error = null;
+  let sessionData = null;
 
-    if (req.method === 'POST') {
-      ({ untrustedData } = req.body);
-      buttonIndex = parseInt(untrustedData.buttonIndex);
-      inputText = untrustedData.inputText || '';
-      fid = untrustedData.fid;
-    } else {
-      ({ buttonIndex, inputText, fid } = req.query);
-      buttonIndex = parseInt(buttonIndex || '0');
-    }
+  if (req.method === 'POST' || req.method === 'GET') {
+    const fid = req.query.fid || req.body?.untrustedData?.fid;
 
-    // Fetch session for current user
+    // Fetch session for current user (if any)
     const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
-    let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep: 'start' };
+    sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep: 'start' };
 
+    // If currentStep exists in sessionData, use it, otherwise assume 'start'
     currentStep = sessionData.currentStep || 'start';
 
-    console.log('Current step:', currentStep);
-    console.log('Session data:', sessionData);
+    if (req.method === 'POST') {
+      const { untrustedData } = req.body;
+      const buttonIndex = parseInt(untrustedData.buttonIndex || '0');
+      const inputText = untrustedData.inputText || '';
 
-    if (currentStep === 'start') {
-      if (buttonIndex === 2 && inputText.trim()) {
+      // Handle Cancel button (buttonIndex === 1 for Cancel)
+      if (currentStep === 'start' && buttonIndex === 1) {
+        console.log('Cancel button clicked, redirecting to home');
+        return res.redirect(302, `${baseUrl}/api`); // Redirect to home
+      }
+
+      // Update steps based on button index and input
+      if (currentStep === 'start' && buttonIndex === 2 && inputText.trim()) {
         sessionData.goal = inputText;
         sessionData.currentStep = 'date';
-        currentStep = 'date';
-      } else if (buttonIndex === 2) {
-        error = 'no_goal';
-      }
-    } else if (currentStep === 'date') {
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+      } else if (currentStep === 'date' && buttonIndex === 2 && isValidDateFormat(inputText)) {
         sessionData.startDate = inputText;
         sessionData.currentStep = 'endDate';
-        currentStep = 'endDate';
-      } else if (buttonIndex === 2) {
-        error = 'invalid_start_date';
-      } else if (buttonIndex === 1) {
-        sessionData.currentStep = 'start';
-        currentStep = 'start';
-      }
-    } else if (currentStep === 'endDate') {
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+      } else if (currentStep === 'endDate' && buttonIndex === 2 && isValidDateFormat(inputText)) {
         sessionData.endDate = inputText;
         sessionData.currentStep = 'review';
-        currentStep = 'review';
-      } else if (buttonIndex === 2) {
-        error = 'invalid_end_date';
-      } else if (buttonIndex === 1) {
-        sessionData.currentStep = 'date';
-        currentStep = 'date';
-      }
-    } else if (currentStep === 'review') {
-      if (buttonIndex === 1) {
-        sessionData.currentStep = 'start';
-        currentStep = 'start';
-      } else if (buttonIndex === 2) {
-        try {
-          const goalRef = await db.collection('goals').add({
-            user_id: fid,
-            goal: sessionData.goal,
-            startDate: Timestamp.fromDate(new Date(sessionData.startDate.split('/').reverse().join('-'))),
-            endDate: Timestamp.fromDate(new Date(sessionData.endDate.split('/').reverse().join('-'))),
-            createdAt: Timestamp.now(),
-            completed: false,
-          });
-
-          const goalId = goalRef.id;
-          console.log(`Goal successfully added with ID: ${goalId}`);
-
-          await db.collection('sessions').doc(fid.toString()).delete();
-
-          const shareText = encodeURIComponent(`I set a new goal: "${sessionData.goal}"! Support me on my journey!\n\nFrame by @aaronv\n\n`);
-          const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
-          
-          const imageUrl = `${baseUrl}/api/ogComplete?goal=${encodeURIComponent(sessionData.goal)}`;
-
-          return res.status(200).send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta property="fc:frame" content="vNext" />
-              <meta property="fc:frame:image" content="${imageUrl}" />
-              <meta property="fc:frame:button:1" content="Home" />
-              <meta property="fc:frame:post_url:1" content="${baseUrl}/api" />
-              <meta property="fc:frame:button:2" content="Share" />
-              <meta property="fc:frame:button:2:action" content="link" />
-              <meta property="fc:frame:button:2:target" content="${shareLink}" />
-            </head>
-            </html>
-          `);
-        } catch (error) {
-          console.error("Error setting goal:", error);
-          return res.redirect(302, `${baseUrl}/api/error`);
-        }
+      } else {
+        error = currentStep === 'start' ? 'no_goal' : 'invalid_date';
       }
     }
 
-    // Update session data in Firebase
+    console.log('Session data:', sessionData);
+
+    // Save session back to Firebase
     await db.collection('sessions').doc(fid.toString()).set(sessionData);
 
-    console.log('Updated session data:', sessionData);
-
-    const html = generateHtml(sessionData, baseUrl, error, currentStep);
+    // Generate the HTML response
+    const html = generateHtml(sessionData, baseUrl, error, sessionData.currentStep);
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
   } else {
@@ -138,7 +73,7 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
 
   if (currentStep === 'start') {
     inputTextContent = sessionData.goal || '';
-    button1Content = 'Cancel';
+    button1Content = 'Cancel'; // Cancel button content
     button2Content = 'Next';
   } else if (currentStep === 'date') {
     inputTextContent = sessionData.startDate || '';
