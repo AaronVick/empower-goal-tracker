@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
         const { untrustedData } = req.body;
-        const fid = untrustedData.fid;
+        const fid = untrustedData?.fid;
 
         console.log('Received FID:', fid);
 
@@ -18,12 +18,20 @@ export default async function handler(req, res) {
 
         try {
             // Retrieve session data from Firebase
-            const sessionRef = await db.collection('sessions').doc(fid).get();
+            const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
             if (!sessionRef.exists) {
+                console.error('No session found');
                 return res.status(400).json({ error: 'No session found' });
             }
+
             const sessionData = sessionRef.data();
             const { goal, startDate, endDate } = sessionData;
+
+            // Ensure startDate and endDate are present
+            if (!goal || !startDate || !endDate) {
+                console.error('Goal, startDate, or endDate is missing in session');
+                return res.status(400).json({ error: 'Missing goal, startDate, or endDate' });
+            }
 
             // Convert the start and end dates to Firebase Timestamps
             const startTimestamp = convertToTimestamp(startDate, true);
@@ -36,7 +44,7 @@ export default async function handler(req, res) {
                 startDate: startTimestamp,
                 endDate: endTimestamp,
                 createdAt: Timestamp.now(),
-                completed: false,  // Marking as incomplete when goal is initially set
+                completed: false, // Initially set the goal as incomplete
             });
 
             const goalId = goalRef.id;
@@ -71,7 +79,7 @@ export default async function handler(req, res) {
             res.status(200).send(html);
         } catch (error) {
             console.error('Error setting goal:', error);
-            return res.redirect(302, `${baseUrl}/api/error`);
+            return res.redirect(302, `${baseUrl}/api/error?message=${encodeURIComponent(error.message)}`);
         }
     } else {
         res.status(405).json({ error: 'Method not allowed' });
