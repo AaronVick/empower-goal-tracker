@@ -1,22 +1,31 @@
 import { db } from '../../lib/firebase';
 import { Timestamp } from 'firebase-admin/firestore';
+import { generateHtml } from './utils';
 
 export default async function handler(req, res) {
+    console.log('Goal Tracker API accessed - Set Goal Step');
     const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
     if (req.method === 'POST') {
         const { untrustedData } = req.body;
         const fid = untrustedData.fid;
 
-        // Retrieve session data
-        const sessionRef = await db.collection('sessions').doc(fid).get();
-        if (!sessionRef.exists) {
-            return res.status(400).json({ error: 'No session found' });
+        console.log('Received FID:', fid);
+
+        if (!fid) {
+            console.error('FID not provided');
+            return res.status(400).json({ error: 'FID is required' });
         }
-        const sessionData = sessionRef.data();
-        const { goal, startDate, endDate } = sessionData;
 
         try {
+            // Retrieve session data
+            const sessionRef = await db.collection('sessions').doc(fid).get();
+            if (!sessionRef.exists) {
+                return res.status(400).json({ error: 'No session found' });
+            }
+            const sessionData = sessionRef.data();
+            const { goal, startDate, endDate } = sessionData;
+
             const startTimestamp = convertToTimestamp(startDate, true);
             const endTimestamp = convertToTimestamp(endDate, false);
 
@@ -37,8 +46,7 @@ export default async function handler(req, res) {
             const shareText = encodeURIComponent(`I set a new goal: "${goal}"! Support me on my journey!\n\nFrame by @aaronv\n\n`);
             const shareLink = `https://warpcast.com/~/compose?text=${shareText}&embeds[]=${encodeURIComponent(`${baseUrl}/api/goalShare?id=${goalId}`)}`;
 
-            res.setHeader('Content-Type', 'text/html');
-            res.status(200).send(`
+            const html = `
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -52,7 +60,11 @@ export default async function handler(req, res) {
                     <meta property="fc:frame:button:2:target" content="${shareLink}" />
                 </head>
                 </html>
-            `);
+            `;
+
+            console.log('Generated HTML:', html);
+            res.setHeader('Content-Type', 'text/html');
+            res.status(200).send(html);
         } catch (error) {
             console.error('Error setting goal:', error);
             res.redirect(302, `${baseUrl}/api/error`);

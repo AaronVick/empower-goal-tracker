@@ -15,6 +15,37 @@ export default async function handler(req) {
     const index = searchParams.get('index');
     const total = searchParams.get('total');
     const completed = searchParams.get('completed') === 'true';
+    const message = searchParams.get('message'); // For handling "No goals" scenario
+
+    if (message) {
+      // Handle case when there are no goals
+      return new ImageResponse(
+        (
+          <div
+            style={{
+              fontSize: 32,
+              color: 'white',
+              background: 'linear-gradient(to bottom, #1E2E3D, #2D3E4D)',
+              width: '100%',
+              height: '100%',
+              padding: '40px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+            }}
+          >
+            <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Goal Tracker</h1>
+            <p style={{ fontSize: '36px', marginBottom: '20px' }}>{decodeURIComponent(message)}</p>
+          </div>
+        ),
+        {
+          width: 1200,
+          height: 630,
+        }
+      );
+    }
 
     if (!goal || !startDate || !endDate) {
       return new Response('Missing required parameters', { status: 400 });
