@@ -4,7 +4,7 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
   switch (step) {
     case 'start':
       imageUrl = `${baseUrl}/api/og?step=start`;
-      inputTextContent = sessionData.goal || "Enter your goal";
+      inputTextContent = "Enter your goal";
       button1Content = "Cancel";
       button2Content = "Next";
       break;
@@ -44,7 +44,7 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
 
   if (error) {
     imageUrl = `${baseUrl}/api/og?error=${encodeURIComponent(error)}&step=${encodeURIComponent(step)}`;
-    inputTextContent = "Error occurred, please try again.";
+    inputTextContent = getErrorMessage(error);
     button1Content = "Home";
     button2Content = "Retry";
   }
@@ -82,4 +82,48 @@ export function isValidDateFormat(dateString) {
   const isValid = date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
   console.log('Date validity:', isValid);
   return isValid;
+}
+
+function getErrorMessage(error) {
+  switch (error) {
+    case 'no_goal':
+      return "Please enter a goal";
+    case 'invalid_start_date':
+      return "Invalid start date. Please use dd/mm/yyyy format.";
+    case 'invalid_end_date':
+      return "Invalid end date. Please use dd/mm/yyyy format.";
+    default:
+      return "An error occurred. Please try again.";
+  }
+}
+
+export function validateGoalData(sessionData) {
+  if (!sessionData.goal || sessionData.goal.trim() === '') {
+    return 'no_goal';
+  }
+  if (!isValidDateFormat(sessionData.startDate)) {
+    return 'invalid_start_date';
+  }
+  if (!isValidDateFormat(sessionData.endDate)) {
+    return 'invalid_end_date';
+  }
+  return null;
+}
+
+export function getNextStep(currentStep) {
+  const steps = ['start', 'startDate', 'endDate', 'review', 'success'];
+  const currentIndex = steps.indexOf(currentStep);
+  if (currentIndex < steps.length - 1) {
+    return steps[currentIndex + 1];
+  }
+  return currentStep;
+}
+
+export function getPreviousStep(currentStep) {
+  const steps = ['start', 'startDate', 'endDate', 'review', 'success'];
+  const currentIndex = steps.indexOf(currentStep);
+  if (currentIndex > 0) {
+    return steps[currentIndex - 1];
+  }
+  return currentStep;
 }

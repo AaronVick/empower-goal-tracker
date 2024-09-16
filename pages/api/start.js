@@ -25,23 +25,25 @@ export default async function handler(req, res) {
       const sessionSnapshot = await sessionRef.get();
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'start' };
 
-      if (buttonIndex === 2 && inputText.trim()) {
-        sessionData.goal = inputText.trim();
-        sessionData.currentStep = 'startDate';
-        sessionData.error = null;
-        await sessionRef.set(sessionData);
-        console.log('Moving to startDate step');
-        const html = generateHtml('startDate', sessionData, baseUrl);
-        console.log('Generated HTML:', html);
-        res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(html);
-      } else if (buttonIndex === 2) {
-        console.log('Error: No goal provided');
-        sessionData.error = 'no_goal';
+      if (buttonIndex === 2) {
+        if (inputText.trim()) {
+          sessionData.goal = inputText.trim();
+          sessionData.currentStep = 'startDate';
+          sessionData.error = null;
+          await sessionRef.set(sessionData);
+          console.log('Moving to startDate step');
+          const html = generateHtml('startDate', sessionData, baseUrl);
+          console.log('Generated HTML:', html);
+          res.setHeader('Content-Type', 'text/html');
+          return res.status(200).send(html);
+        } else {
+          console.log('Error: No goal provided');
+          sessionData.error = 'no_goal';
+        }
       }
 
+      // If we're here, it's either the initial load or an error occurred
       await sessionRef.set(sessionData);
-
       const html = generateHtml('start', sessionData, baseUrl, sessionData.error);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');
