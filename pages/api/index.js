@@ -7,17 +7,10 @@ export default async function handler(req, res) {
   console.log('Request method:', req.method);
   console.log('Request body:', JSON.stringify(req.body, null, 2));
 
-  if (req.method === 'GET' || req.method === 'POST') {
-    let buttonIndex, fid;
-
-    if (req.method === 'POST') {
-      const { untrustedData } = req.body;
-      buttonIndex = parseInt(untrustedData.buttonIndex);
-      fid = untrustedData.fid;
-    } else {
-      ({ buttonIndex, fid } = req.query);
-      buttonIndex = parseInt(buttonIndex || '0');
-    }
+  if (req.method === 'POST') {
+    const { untrustedData } = req.body;
+    const buttonIndex = parseInt(untrustedData.buttonIndex);
+    const fid = untrustedData.fid;
 
     if (buttonIndex === 1) {
       // "Start a Goal" was clicked
