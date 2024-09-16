@@ -1,110 +1,85 @@
 import { db } from '../../lib/firebase';
-import { Timestamp } from 'firebase-admin/firestore';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed');
-  console.log('Request method:', req.method);
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
-  console.log('Request query:', JSON.stringify(req.query, null, 2));
-
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-  
-  if (req.method === 'GET' || req.method === 'POST') {
-    let currentStep = 'start';
-    let error = null;
-    let untrustedData, buttonIndex, inputText, fid;
+  let error = null;
 
-    if (req.method === 'POST') {
-      ({ untrustedData } = req.body);
-      buttonIndex = parseInt(untrustedData.buttonIndex);
-      inputText = untrustedData.inputText || '';
-      fid = untrustedData.fid;
-    } else {
-      ({ buttonIndex, inputText, fid } = req.query);
-      buttonIndex = parseInt(buttonIndex || '0');
+  if (req.method === 'POST') {
+    const { untrustedData } = req.body;
+    const buttonIndex = parseInt(untrustedData.buttonIndex);
+    const inputText = untrustedData.inputText || '';
+    const fid = untrustedData.fid;
+
+    console.log('Received FID:', fid);
+    console.log('Received button index:', buttonIndex);
+    console.log('Received input text:', inputText);
+
+    if (!fid) {
+      console.error('FID not provided');
+      return res.status(400).json({ error: 'FID is required' });
     }
 
-    // Fetch session for current user
-    const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
-    let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
+    try {
+      console.log('Attempting to fetch/initialize session for FID:', fid);
+      const sessionRef = db.collection('sessions').doc(fid.toString());
+      const sessionSnapshot = await sessionRef.get();
+      let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'start' };
 
-    currentStep = sessionData.stepGoal || 'start';
+      console.log('Current session data:', sessionData);
 
-    console.log('Current step:', currentStep);
-    console.log('Session data:', sessionData);
-
-    if (currentStep === 'start') {
-      if (buttonIndex === 2 && inputText.trim()) {
-        sessionData.goal = inputText;
-        sessionData.stepGoal = 'startDate';
-        currentStep = 'startDate';
-      } else if (buttonIndex === 2) {
-        error = 'no_goal';
-      }
-    } else if (currentStep === 'startDate') {
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        sessionData.startDate = inputText;
-        sessionData.stepGoal = 'endDate';
-        currentStep = 'endDate';
-      } else if (buttonIndex === 2) {
-        error = 'invalid_start_date';
-      } else if (buttonIndex === 1) {
-        sessionData.stepGoal = 'start';
-        currentStep = 'start';
-      }
-    } else if (currentStep === 'endDate') {
-      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
-        sessionData.endDate = inputText;
-        sessionData.stepGoal = 'review';
-        currentStep = 'review';
-      } else if (buttonIndex === 2) {
-        error = 'invalid_end_date';
-      } else if (buttonIndex === 1) {
-        sessionData.stepGoal = 'startDate';
-        currentStep = 'startDate';
-      }
-    } else if (currentStep === 'review') {
-      if (buttonIndex === 1) {
-        // Edit button clicked, go back to start
-        sessionData.stepGoal = 'start';
-        currentStep = 'start';
-      } else if (buttonIndex === 2) {
-        // Set Goal button clicked, save the goal
-        try {
-          const goalRef = await db.collection('goals').add({
-            user_id: fid,
-            goal: sessionData.goal,
-            startDate: Timestamp.fromDate(new Date(sessionData.startDate.split('/').reverse().join('-'))),
-            endDate: Timestamp.fromDate(new Date(sessionData.endDate.split('/').reverse().join('-'))),
-            createdAt: Timestamp.now(),
-            completed: false,
-          });
-
-          const goalId = goalRef.id;
-          console.log(`Goal successfully added with ID: ${goalId}`);
-
-          // Clear the session data after successful goal creation
-          await db.collection('sessions').doc(fid.toString()).delete();
-
-          // Redirect to the share page
-          return res.redirect(302, `${baseUrl}/api/goalShare?id=${goalId}`);
-        } catch (error) {
-          console.error("Error setting goal:", error);
-          return res.redirect(302, `${baseUrl}/api/error`);
+      // Handle navigation and inputs
+      if (sessionData.currentStep === 'start') {
+        if (buttonIndex === 2 && inputText.trim()) {
+          sessionData.goal = inputText;
+          sessionData.currentStep = 'startDate';
+        } else if (buttonIndex === 2) {
+          error = 'no_goal';
+        }
+      } else if (sessionData.currentStep === 'startDate') {
+        if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+          sessionData.startDate = inputText;
+          sessionData.currentStep = 'endDate';
+        } else if (buttonIndex === 2) {
+          error = 'invalid_start_date';
+        } else if (buttonIndex === 1) {
+          sessionData.currentStep = 'start';
+        }
+      } else if (sessionData.currentStep === 'endDate') {
+        if (buttonIndex === 2 && isValidDateFormat(inputText)) {
+          sessionData.endDate = inputText;
+          sessionData.currentStep = 'review';
+        } else if (buttonIndex === 2) {
+          error = 'invalid_end_date';
+        } else if (buttonIndex === 1) {
+          sessionData.currentStep = 'startDate';
+        }
+      } else if (sessionData.currentStep === 'review') {
+        if (buttonIndex === 2) {
+          sessionData.currentStep = 'success';
+        } else if (buttonIndex === 1) {
+          sessionData.currentStep = 'endDate';
         }
       }
+
+      if (error) {
+        sessionData.currentStep = 'error';
+      }
+
+      console.log('Updated session data:', sessionData);
+
+      // Update session data in Firebase
+      await sessionRef.set(sessionData);
+
+      const html = generateHtml(sessionData, baseUrl, error);
+      res.setHeader('Content-Type', 'text/html');
+      res.status(200).send(html);
+    } catch (firebaseError) {
+      console.error('Error updating session in Firebase:', firebaseError);
+      return res.status(500).json({ error: 'Failed to update session', details: firebaseError.message });
     }
-
-    // Update session data in Firebase
-    await db.collection('sessions').doc(fid.toString()).set(sessionData);
-
-    console.log('Updated session data:', sessionData);
-
-    const html = generateHtml(sessionData, baseUrl, error, currentStep);
-    
-    // Log the generated HTML for debugging
-    console.log('Generated HTML:', html);
-
+  } else if (req.method === 'GET') {
+    const html = generateHtml({ currentStep: 'start' }, baseUrl);
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
   } else {
@@ -112,41 +87,56 @@ export default async function handler(req, res) {
   }
 }
 
-function generateHtml(sessionData, baseUrl, error, currentStep) {
+function generateHtml(sessionData, baseUrl, error) {
   let imageUrl, inputTextContent, button1Content, button2Content;
 
   if (error) {
-    imageUrl = `${baseUrl}/api/og?error=${error}&step=${currentStep}`;
-  } else if (currentStep === 'review') {
-    const goal = encodeURIComponent(sessionData.goal);
-    const startDate = encodeURIComponent(sessionData.startDate);
-    const endDate = encodeURIComponent(sessionData.endDate);
-    imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
+    imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.currentStep}`;
+    inputTextContent = "Error occurred, please try again.";
+    button1Content = "Home";
+    button2Content = "Retry";
   } else {
-    imageUrl = `${baseUrl}/api/og?step=${currentStep}`;
+    switch (sessionData.currentStep) {
+      case 'start':
+        imageUrl = `${baseUrl}/api/og?step=start`;
+        inputTextContent = "Enter your goal";
+        button1Content = "Cancel";
+        button2Content = "Next";
+        break;
+      case 'startDate':
+        imageUrl = `${baseUrl}/api/og?step=startDate`;
+        inputTextContent = "Enter the start date (dd/mm/yyyy)";
+        button1Content = "Back";
+        button2Content = "Next";
+        break;
+      case 'endDate':
+        imageUrl = `${baseUrl}/api/og?step=endDate`;
+        inputTextContent = "Enter the end date (dd/mm/yyyy)";
+        button1Content = "Back";
+        button2Content = "Next";
+        break;
+      case 'review':
+        const goal = encodeURIComponent(sessionData.goal);
+        const startDate = encodeURIComponent(sessionData.startDate);
+        const endDate = encodeURIComponent(sessionData.endDate);
+        imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
+        button1Content = "Back";
+        button2Content = "Set Goal";
+        inputTextContent = null;
+        break;
+      case 'success':
+        imageUrl = `${baseUrl}/api/successImage`;
+        button1Content = "Home";
+        button2Content = "Share";
+        inputTextContent = null;
+        break;
+      default:
+        imageUrl = `${baseUrl}/api/og?step=unknown`;
+        inputTextContent = "Unknown step.";
+        button1Content = "Cancel";
+        button2Content = "Retry";
+    }
   }
-
-  if (currentStep === 'start') {
-    inputTextContent = 'Enter your goal';
-    button1Content = 'Cancel';
-    button2Content = 'Next';
-  } else if (currentStep === 'startDate') {
-    inputTextContent = 'Enter start date (DD/MM/YYYY)';
-    button1Content = 'Back';
-    button2Content = 'Next';
-  } else if (currentStep === 'endDate') {
-    inputTextContent = 'Enter end date (DD/MM/YYYY)';
-    button1Content = 'Back';
-    button2Content = 'Next';
-  } else if (currentStep === 'review') {
-    button1Content = 'Edit';
-    button2Content = 'Set Goal';
-  }
-  
-  // Ensure all content is properly encoded to avoid issues with special characters
-  inputTextContent = inputTextContent ? encodeURIComponent(inputTextContent) : '';
-  button1Content = encodeURIComponent(button1Content);
-  button2Content = encodeURIComponent(button2Content);
 
   return `
 <!DOCTYPE html>
@@ -167,6 +157,7 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
 }
 
 function isValidDateFormat(dateString) {
+  console.log('Validating date format:', dateString);
   const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
   if (!regex.test(dateString)) {
     console.log('Date format validation failed');

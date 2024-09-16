@@ -16,18 +16,10 @@ export default async function handler(req) {
     const total = searchParams.get('total');
     const completed = searchParams.get('completed') === 'true';
 
-    console.log('Goal:', goal);
-    console.log('Start Date:', startDate);
-    console.log('End Date:', endDate);
-    console.log('Index:', index);
-    console.log('Total:', total);
-    console.log('Completed:', completed);
-
     if (!goal || !startDate || !endDate) {
       return new Response('Missing required parameters', { status: 400 });
     }
 
-    // Generate dynamic image with goal details
     return new ImageResponse(
       (
         <div
@@ -69,7 +61,6 @@ export default async function handler(req) {
         height: 630,
       }
     );
-
   } catch (e) {
     console.error('Error generating review image:', e);
     return new Response(`Failed to generate image: ${e.message}`, { status: 500 });

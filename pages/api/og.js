@@ -16,13 +16,11 @@ export default async function handler(req) {
     console.log('Error parameter:', error);
     console.log('Step parameter:', step);
 
-    // Use the static image for goal-setting steps
     if (!error && (step === 'start' || step === 'startDate' || step === 'endDate')) {
       console.log('Returning static image for step:', step);
       return NextResponse.redirect(new URL('/addGoal.png', req.url));
     }
 
-    // Generate dynamic image for error cases
     if (error) {
       let message;
       switch (error) {
@@ -69,7 +67,6 @@ export default async function handler(req) {
       );
     }
 
-    // Fallback to static image if no specific step or error is provided
     console.log('Returning fallback static image');
     return NextResponse.redirect(new URL('/addGoal.png', req.url));
   } catch (e) {
