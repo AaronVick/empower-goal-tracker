@@ -10,6 +10,11 @@ export default async function handler(req, res) {
   if (req.method === 'POST' || req.method === 'GET') {
     const fid = req.query.fid || req.body?.untrustedData?.fid;
 
+    // Ensure we have a valid FID
+    if (!fid) {
+      return res.status(400).json({ error: 'FID is required' });
+    }
+
     // Fetch session for current user (if any)
     const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
     sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep: 'start' };
@@ -23,9 +28,9 @@ export default async function handler(req, res) {
       const inputText = untrustedData.inputText || '';
 
       // Handle Cancel button (buttonIndex === 1 for Cancel)
-      if (currentStep === 'start' && buttonIndex === 1) {
+      if (buttonIndex === 1) {
         console.log('Cancel button clicked, redirecting to home');
-        return res.redirect(302, `${baseUrl}/api`); // Redirect to home
+        return res.redirect(302, `${baseUrl}`); // Redirect to home
       }
 
       // Update steps based on button index and input
@@ -43,12 +48,10 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('Session data:', sessionData);
-
-    // Save session back to Firebase
+    // Save updated session back to Firebase
     await db.collection('sessions').doc(fid.toString()).set(sessionData);
 
-    // Generate the HTML response
+    // Generate HTML response
     const html = generateHtml(sessionData, baseUrl, error, sessionData.currentStep);
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
@@ -87,7 +90,7 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
     button1Content = 'Edit';
     button2Content = 'Set Goal';
   }
-  
+
   return `
     <!DOCTYPE html>
     <html>
