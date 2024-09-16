@@ -2,10 +2,14 @@ import { db } from '../../lib/firebase';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed');
+  console.log('Request method:', req.method);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Request query:', JSON.stringify(req.query, null, 2));
+
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
   
   if (req.method === 'GET' || req.method === 'POST') {
-    let currentStep = process.env.stepGoal || 'start';
+    let currentStep = 'start';
     let error = null;
     let untrustedData, buttonIndex, inputText, fid;
 
@@ -20,46 +24,52 @@ export default async function handler(req, res) {
     }
 
     // Fetch session for current user
-    const sessionRef = await db.collection('sessions').doc(fid).get();
+    const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
     let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
 
-    if (currentStep === 'error') {
-      currentStep = sessionData.stepGoal;
-      error = null;
-    } else if (currentStep === 'start') {
+    currentStep = sessionData.stepGoal || 'start';
+
+    console.log('Current step:', currentStep);
+    console.log('Session data:', sessionData);
+
+    if (currentStep === 'start') {
       if (buttonIndex === 2 && inputText.trim()) {
         sessionData.goal = inputText;
         sessionData.stepGoal = '2';
-      } else {
+        currentStep = '2';
+      } else if (buttonIndex === 2) {
         error = 'no_goal';
-        sessionData.stepGoal = 'start';
       }
-    } else if (currentStep === '2' && buttonIndex === 2) {
-      if (isValidDateFormat(inputText)) {
+    } else if (currentStep === '2') {
+      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
         sessionData.startDate = inputText;
         sessionData.stepGoal = '3';
-      } else {
+        currentStep = '3';
+      } else if (buttonIndex === 2) {
         error = 'invalid_start_date';
-        sessionData.stepGoal = '2';
+      } else if (buttonIndex === 1) {
+        sessionData.stepGoal = 'start';
+        currentStep = 'start';
       }
-    } else if (currentStep === '3' && buttonIndex === 2) {
-      if (isValidDateFormat(inputText)) {
+    } else if (currentStep === '3') {
+      if (buttonIndex === 2 && isValidDateFormat(inputText)) {
         sessionData.endDate = inputText;
         sessionData.stepGoal = 'review';
-      } else {
+        currentStep = 'review';
+      } else if (buttonIndex === 2) {
         error = 'invalid_end_date';
-        sessionData.stepGoal = '3';
+      } else if (buttonIndex === 1) {
+        sessionData.stepGoal = '2';
+        currentStep = '2';
       }
     }
 
     // Update session data in Firebase
-    await db.collection('sessions').doc(fid).set(sessionData);
+    await db.collection('sessions').doc(fid.toString()).set(sessionData);
 
-    if (error) {
-      currentStep = 'error';
-    }
+    console.log('Updated session data:', sessionData);
 
-    const html = generateHtml(sessionData, baseUrl, error);
+    const html = generateHtml(sessionData, baseUrl, error, currentStep);
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(html);
   } else {
@@ -67,33 +77,33 @@ export default async function handler(req, res) {
   }
 }
 
-function generateHtml(sessionData, baseUrl, error) {
+function generateHtml(sessionData, baseUrl, error, currentStep) {
   let imageUrl, inputTextContent, button1Content, button2Content;
 
   if (error) {
-    imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.stepGoal}`;
-  } else if (sessionData.stepGoal === 'review') {
+    imageUrl = `${baseUrl}/api/og?error=${error}&step=${currentStep}`;
+  } else if (currentStep === 'review') {
     const goal = encodeURIComponent(sessionData.goal);
     const startDate = encodeURIComponent(sessionData.startDate);
     const endDate = encodeURIComponent(sessionData.endDate);
     imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
   } else {
-    imageUrl = `${baseUrl}/api/og?step=${sessionData.stepGoal}`;
+    imageUrl = `${baseUrl}/api/og?step=${currentStep}`;
   }
 
-  if (sessionData.stepGoal === 'start') {
+  if (currentStep === 'start') {
     inputTextContent = 'Enter your goal';
     button1Content = 'Cancel';
     button2Content = 'Next';
-  } else if (sessionData.stepGoal === '2') {
+  } else if (currentStep === '2') {
     inputTextContent = 'Enter start date (DD/MM/YYYY)';
     button1Content = 'Back';
     button2Content = 'Next';
-  } else if (sessionData.stepGoal === '3') {
+  } else if (currentStep === '3') {
     inputTextContent = 'Enter end date (DD/MM/YYYY)';
     button1Content = 'Back';
     button2Content = 'Next';
-  } else if (sessionData.stepGoal === 'review') {
+  } else if (currentStep === 'review') {
     button1Content = 'Edit';
     button2Content = 'Set Goal';
   }
