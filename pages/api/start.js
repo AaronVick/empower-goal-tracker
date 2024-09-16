@@ -99,7 +99,7 @@ export default async function handler(req, res) {
               <meta property="fc:frame" content="vNext" />
               <meta property="fc:frame:image" content="${imageUrl}" />
               <meta property="fc:frame:button:1" content="Home" />
-              <meta property="fc:frame:post_url:1" content="${baseUrl}/api" />
+              <meta property="fc:frame:post_url:1" content="${baseUrl}" />
               <meta property="fc:frame:button:2" content="Share" />
               <meta property="fc:frame:button:2:action" content="link" />
               <meta property="fc:frame:button:2:target" content="${shareLink}" />

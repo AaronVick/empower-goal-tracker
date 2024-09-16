@@ -10,7 +10,7 @@ export default function Home() {
         <meta property="fc:frame:image" content={`${baseUrl}/api/image`} />
         <meta property="fc:frame:button:1" content="Start a Goal" />
         <meta property="fc:frame:button:2" content="Review Goals" />
-        <meta property="fc:frame:post_url" content={`${baseUrl}/api`} />
+        <meta property="fc:frame:post_url" content={`${baseUrl}/api/start`} />
       </head>
       <body>
         <h1>Welcome to Empower Goal Tracker</h1>
