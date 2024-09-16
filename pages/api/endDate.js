@@ -1,5 +1,5 @@
 import { db } from '../../lib/firebase';
-import { generateHtml, isValidDateFormat } from './utils';
+import { isValidDateFormat } from './utils';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed - End Date Step');
@@ -25,40 +25,48 @@ export default async function handler(req, res) {
       const sessionSnapshot = await sessionRef.get();
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'endDate' };
 
-      // Handle button actions
       if (buttonIndex === 2) {
-        // Next button pressed
+        // Validate end date and proceed
         if (isValidDateFormat(inputText)) {
           sessionData.endDate = inputText;
-          sessionData.currentStep = 'review';
+          sessionData.currentStep = 'review'; // Move to the review step
           sessionData.error = null;
           await sessionRef.set(sessionData);
-          console.log('Moving to review step');
+
+          // Redirect to review step
           return res.redirect(307, `${baseUrl}/api/review`);
         } else {
-          console.log('Error: Invalid end date format');
           sessionData.error = 'invalid_end_date';
         }
       } else if (buttonIndex === 1) {
-        // Back button pressed
+        // Back button - return to startDate
         sessionData.currentStep = 'startDate';
         await sessionRef.set(sessionData);
-        console.log('Moving back to startDate step');
         return res.redirect(307, `${baseUrl}/api/startDate`);
       }
 
-      // If we're here, either there was an error or it's the initial load
-      console.log('Updated session data:', sessionData);
+      // If there was an error or an initial load
       await sessionRef.set(sessionData);
-
-      // For the initial load or error case, we don't validate the date
-      const html = generateHtml('endDate', sessionData, baseUrl, sessionData.error);
-      console.log('Generated HTML:', html);
-      res.setHeader('Content-Type', 'text/html');
-      res.status(200).send(html);
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${baseUrl}/api/og?step=endDate" />
+          <meta property="fc:frame:input:text" content="${sessionData.endDate || 'Enter the end date (dd/mm/yyyy)'}" />
+          <meta property="fc:frame:button:1" content="Back" />
+          <meta property="fc:frame:button:2" content="Next" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api/endDate" />
+        </head>
+        <body>
+          <p>Goal Tracker - End Date</p>
+        </body>
+        </html>
+      `;
+      return res.status(200).send(html);
     } catch (error) {
       console.error('Error in endDate step:', error);
-      res.status(500).json({ error: 'Internal server error', details: error.message });
+      return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });

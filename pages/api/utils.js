@@ -65,23 +65,18 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
     <p>This is a Farcaster Frame for the Goal Tracker app.</p>
   </body>
 </html>`;
-
   return html;
 }
 
 export function isValidDateFormat(dateString) {
-  console.log('Validating date format:', dateString);
   const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
   if (!regex.test(dateString)) {
-    console.log('Date format validation failed');
     return false;
   }
 
   const [day, month, year] = dateString.split('/');
-  const date = new Date(year, month - 1, day);
-  const isValid = date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
-  console.log('Date validity:', isValid);
-  return isValid;
+  const date = new Date(`${year}-${month}-${day}`);
+  return date.getDate() == day && date.getMonth() == month - 1 && date.getFullYear() == year;
 }
 
 function getErrorMessage(error) {
@@ -95,35 +90,4 @@ function getErrorMessage(error) {
     default:
       return "An error occurred. Please try again.";
   }
-}
-
-export function validateGoalData(sessionData) {
-  if (!sessionData.goal || sessionData.goal.trim() === '') {
-    return 'no_goal';
-  }
-  if (!isValidDateFormat(sessionData.startDate)) {
-    return 'invalid_start_date';
-  }
-  if (!isValidDateFormat(sessionData.endDate)) {
-    return 'invalid_end_date';
-  }
-  return null;
-}
-
-export function getNextStep(currentStep) {
-  const steps = ['start', 'startDate', 'endDate', 'review', 'success'];
-  const currentIndex = steps.indexOf(currentStep);
-  if (currentIndex < steps.length - 1) {
-    return steps[currentIndex + 1];
-  }
-  return currentStep;
-}
-
-export function getPreviousStep(currentStep) {
-  const steps = ['start', 'startDate', 'endDate', 'review', 'success'];
-  const currentIndex = steps.indexOf(currentStep);
-  if (currentIndex > 0) {
-    return steps[currentIndex - 1];
-  }
-  return currentStep;
 }

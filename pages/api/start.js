@@ -1,5 +1,4 @@
 import { db } from '../../lib/firebase';
-import { generateHtml } from './utils';
 
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed - Start Step');
@@ -34,9 +33,24 @@ export default async function handler(req, res) {
           sessionData.currentStep = 'startDate';
           await sessionRef.set(sessionData);
           console.log('Moving to startDate step');
-          const html = generateHtml('startDate', sessionData, baseUrl);
-          console.log('Generated HTML:', html);
-          res.setHeader('Content-Type', 'text/html');
+
+          // Return metatags for the startDate frame
+          const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta property="fc:frame" content="vNext" />
+              <meta property="fc:frame:image" content="${baseUrl}/api/og?step=startDate" />
+              <meta property="fc:frame:input:text" content="Enter the start date (dd/mm/yyyy)" />
+              <meta property="fc:frame:button:1" content="Back" />
+              <meta property="fc:frame:button:2" content="Next" />
+              <meta property="fc:frame:post_url" content="${baseUrl}/api/startDate" />
+            </head>
+            <body>
+              <p>Goal Tracker - Start Date</p>
+            </body>
+            </html>
+          `;
           return res.status(200).send(html);
         } else {
           console.log('Error: No goal provided');
@@ -44,19 +58,46 @@ export default async function handler(req, res) {
         }
       }
 
-      // If we're here, it's either the initial load or an error occurred
+      // If an error occurs or it's the initial load
       await sessionRef.set(sessionData);
-      const html = generateHtml('start', sessionData, baseUrl, sessionData.error);
-      console.log('Generated HTML:', html);
-      res.setHeader('Content-Type', 'text/html');
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${baseUrl}/api/og?step=start" />
+          <meta property="fc:frame:input:text" content="${sessionData.goal || 'Enter your goal'}" />
+          <meta property="fc:frame:button:1" content="Cancel" />
+          <meta property="fc:frame:button:2" content="Next" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
+        </head>
+        <body>
+          <p>Goal Tracker - Set your goal</p>
+        </body>
+        </html>
+      `;
       return res.status(200).send(html);
     } catch (error) {
       console.error('Error in start step:', error);
       return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   } else if (req.method === 'GET') {
-    const html = generateHtml('start', { currentStep: 'start' }, baseUrl);
-    res.setHeader('Content-Type', 'text/html');
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta property="fc:frame" content="vNext" />
+        <meta property="fc:frame:image" content="${baseUrl}/api/og?step=start" />
+        <meta property="fc:frame:input:text" content="Enter your goal" />
+        <meta property="fc:frame:button:1" content="Cancel" />
+        <meta property="fc:frame:button:2" content="Next" />
+        <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
+      </head>
+      <body>
+        <p>Goal Tracker - Set your goal</p>
+      </body>
+      </html>
+    `;
     return res.status(200).send(html);
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
