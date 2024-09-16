@@ -10,7 +10,7 @@ export default async function handler(req, res) {
         const { untrustedData } = req.body;
         const buttonIndex = parseInt(untrustedData.buttonIndex);
         const inputText = untrustedData.inputText || '';
-        const fid = untrustedData.fid || req.query.fid; // Ensure fid is provided or passed in query
+        const fid = untrustedData.fid || req.query.fid;
 
         if (!fid) {
             console.error('FID not provided');
@@ -18,53 +18,54 @@ export default async function handler(req, res) {
         }
 
         // Fetch or initialize session for current user
-        const sessionRef = await db.collection('sessions').doc(fid).get();
-        let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
-
-        if (currentStep === 'error') {
-            currentStep = sessionData.stepGoal;
-            error = null;
-        } else if (currentStep === 'start') {
-            if (buttonIndex === 2 && inputText.trim()) {
-                sessionData.goal = inputText;
-                sessionData.stepGoal = '2';
-            } else {
-                error = 'no_goal';
-                sessionData.stepGoal = 'start';
-            }
-        } else if (currentStep === '2' && buttonIndex === 2) {
-            if (isValidDateFormat(inputText)) {
-                sessionData.startDate = inputText;
-                sessionData.stepGoal = '3';
-            } else {
-                error = 'invalid_start_date';
-                sessionData.stepGoal = '2';
-            }
-        } else if (currentStep === '3' && buttonIndex === 2) {
-            if (isValidDateFormat(inputText)) {
-                sessionData.endDate = inputText;
-                sessionData.stepGoal = 'review';
-            } else {
-                error = 'invalid_end_date';
-                sessionData.stepGoal = '3';
-            }
-        }
-
-        // Update session data in Firebase
         try {
+            const sessionRef = await db.collection('sessions').doc(fid).get();
+            let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
+
+            // Handle navigation and inputs
+            if (currentStep === 'error') {
+                currentStep = sessionData.stepGoal;
+                error = null;
+            } else if (currentStep === 'start') {
+                if (buttonIndex === 2 && inputText.trim()) {
+                    sessionData.goal = inputText;
+                    sessionData.stepGoal = '2';
+                } else {
+                    error = 'no_goal';
+                    sessionData.stepGoal = 'start';
+                }
+            } else if (currentStep === '2' && buttonIndex === 2) {
+                if (isValidDateFormat(inputText)) {
+                    sessionData.startDate = inputText;
+                    sessionData.stepGoal = '3';
+                } else {
+                    error = 'invalid_start_date';
+                    sessionData.stepGoal = '2';
+                }
+            } else if (currentStep === '3' && buttonIndex === 2) {
+                if (isValidDateFormat(inputText)) {
+                    sessionData.endDate = inputText;
+                    sessionData.stepGoal = 'review';
+                } else {
+                    error = 'invalid_end_date';
+                    sessionData.stepGoal = '3';
+                }
+            }
+
+            // Update session data in Firebase
             await db.collection('sessions').doc(fid).set(sessionData);
+
+            if (error) {
+                currentStep = 'error';
+            }
+
+            const html = generateHtml(sessionData, baseUrl, error);
+            res.setHeader('Content-Type', 'text/html');
+            res.status(200).send(html);
         } catch (firebaseError) {
             console.error('Error updating session in Firebase:', firebaseError);
             return res.status(500).json({ error: 'Failed to update session' });
         }
-
-        if (error) {
-            currentStep = 'error';
-        }
-
-        const html = generateHtml(sessionData, baseUrl, error);
-        res.setHeader('Content-Type', 'text/html');
-        res.status(200).send(html);
     } else {
         res.status(405).json({ error: 'Method not allowed' });
     }
