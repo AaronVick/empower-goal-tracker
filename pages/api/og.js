@@ -16,13 +16,13 @@ export default async function handler(req) {
     console.log('Error parameter:', error);
     console.log('Step parameter:', step);
 
-    // Use static image for goal-setting steps
-    if (!error && (step === 'start' || step === '2' || step === '3')) {
+    // Use the static image for goal-setting steps
+    if (!error && (step === 'start' || step === 'startDate' || step === 'endDate')) {
       console.log('Returning static image for step:', step);
       return NextResponse.redirect(new URL('/addGoal.png', req.url));
     }
 
-    // Generate dynamic image for errors
+    // Generate dynamic image for error cases
     if (error) {
       let message;
       switch (error) {
@@ -50,7 +50,7 @@ export default async function handler(req) {
               background: 'linear-gradient(to bottom, #1E2E3D, #2D3E4D)',
               width: '100%',
               height: '100%',
-              padding: '50px 200px',
+              padding: '50px',
               textAlign: 'center',
               justifyContent: 'center',
               alignItems: 'center',
@@ -69,10 +69,9 @@ export default async function handler(req) {
       );
     }
 
-    // For any other cases, return the static image
-    console.log('Returning static image for unhandled case');
+    // Fallback to static image if no specific step or error is provided
+    console.log('Returning fallback static image');
     return NextResponse.redirect(new URL('/addGoal.png', req.url));
-
   } catch (e) {
     console.error('Error in OG Image Generator:', e);
     return new Response(`Failed to generate image: ${e.message}`, { status: 500 });

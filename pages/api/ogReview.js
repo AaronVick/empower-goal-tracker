@@ -27,7 +27,8 @@ export default async function handler(req) {
       return new Response('Missing required parameters', { status: 400 });
     }
 
-    const imageResponse = new ImageResponse(
+    // Generate dynamic image with goal details
+    return new ImageResponse(
       (
         <div
           style={{
@@ -44,8 +45,8 @@ export default async function handler(req) {
             textAlign: 'center',
           }}
         >
-          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Your Goal Review</h1>
-          <p style={{ fontSize: '24px', marginBottom: '10px' }}>Goal {index} of {total}</p>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Goal Review</h1>
+          <p style={{ fontSize: '24px', marginBottom: '10px' }}>Goal {index || 1} of {total || 1}</p>
           <p style={{ fontSize: '36px', marginBottom: '20px', maxWidth: '80%', wordBreak: 'break-word' }}>
             {decodeURIComponent(goal)}
           </p>
@@ -69,10 +70,8 @@ export default async function handler(req) {
       }
     );
 
-    console.log('Image generated successfully');
-    return imageResponse;
   } catch (e) {
-    console.error('Error generating image:', e);
+    console.error('Error generating review image:', e);
     return new Response(`Failed to generate image: ${e.message}`, { status: 500 });
   }
 }
