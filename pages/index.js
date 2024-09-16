@@ -37,9 +37,8 @@ export async function getServerSideProps(context) {
       });
 
       return {
-        props: {},
         redirect: {
-          destination: '/api/start',
+          destination: `/api/start?fid=${fid}`,
           permanent: false,
         },
       };
@@ -47,7 +46,6 @@ export async function getServerSideProps(context) {
       // "Review Goals" was clicked
       console.log('Review Goals button clicked');
       return {
-        props: {},
         redirect: {
           destination: `/api/reviewGoals?fid=${fid}`,
           permanent: false,
