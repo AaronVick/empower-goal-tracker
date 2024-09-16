@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     try {
       const sessionRef = db.collection('sessions').doc(fid.toString());
       const sessionSnapshot = await sessionRef.get();
-      let sessionData = sessionSnapshot.exists ? sessionData = sessionSnapshot.data() : { fid, currentStep: 'start' };
+      let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'start' };
 
       if (buttonIndex === 2 && inputText.trim()) {
         sessionData.goal = inputText.trim();
@@ -42,16 +42,16 @@ export default async function handler(req, res) {
       const html = generateHtml('start', sessionData, baseUrl, sessionData.error);
       console.log('Generated HTML:', html);
       res.setHeader('Content-Type', 'text/html');
-      res.status(200).send(html);
+      return res.status(200).send(html);
     } catch (error) {
       console.error('Error in start step:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   } else if (req.method === 'GET') {
     const html = generateHtml('start', { currentStep: 'start' }, baseUrl);
     res.setHeader('Content-Type', 'text/html');
-    res.status(200).send(html);
+    return res.status(200).send(html);
   } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 }
