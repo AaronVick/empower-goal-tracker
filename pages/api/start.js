@@ -25,11 +25,13 @@ export default async function handler(req, res) {
       const sessionSnapshot = await sessionRef.get();
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'start' };
 
+      // Reset error state
+      sessionData.error = null;
+
       if (buttonIndex === 2) {
         if (inputText.trim()) {
           sessionData.goal = inputText.trim();
           sessionData.currentStep = 'startDate';
-          sessionData.error = null;
           await sessionRef.set(sessionData);
           console.log('Moving to startDate step');
           const html = generateHtml('startDate', sessionData, baseUrl);

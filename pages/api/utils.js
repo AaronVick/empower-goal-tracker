@@ -4,7 +4,7 @@ export function generateHtml(step, sessionData, baseUrl, error = null) {
   switch (step) {
     case 'start':
       imageUrl = `${baseUrl}/api/og?step=start`;
-      inputTextContent = "Enter your goal";
+      inputTextContent = sessionData.goal || "Enter your goal";
       button1Content = "Cancel";
       button2Content = "Next";
       break;
