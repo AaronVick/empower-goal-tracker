@@ -118,7 +118,6 @@ function generateHtml(sessionData, baseUrl, error, currentStep) {
     button2Content = 'Set Goal';
   }
 
-  // Added debugging to see what HTML is generated
   console.log('Generated HTML for currentStep:', currentStep);
 
   return `
