@@ -20,25 +20,21 @@ export default async function handler(req, res) {
       inputText = untrustedData.inputText || '';
       fid = untrustedData.fid;
     } else {
-      ({ buttonIndex, inputText, fid } = req.query);
+      ({ buttonIndex, inputText, fid, step } = req.query);
       buttonIndex = parseInt(buttonIndex || '0');
+      currentStep = step || 'start';
     }
 
     // Fetch session for current user
     const sessionRef = await db.collection('sessions').doc(fid.toString()).get();
     let sessionData = sessionRef.exists ? sessionRef.data() : { fid, currentStep, stepGoal: 'start' };
 
-    currentStep = sessionData.stepGoal || 'start';
+    currentStep = sessionData.stepGoal || currentStep;
 
     console.log('Current step:', currentStep);
     console.log('Session data:', sessionData);
 
-    // Handle initial "Start a Goal" click
-    if (!sessionData.stepGoal) {
-      sessionData.stepGoal = 'start';
-      currentStep = 'start';
-      await db.collection('sessions').doc(fid.toString()).set(sessionData);
-    } else if (currentStep === 'start') {
+    if (currentStep === 'start') {
       if (buttonIndex === 2 && inputText.trim()) {
         sessionData.goal = inputText;
         sessionData.stepGoal = '2';
