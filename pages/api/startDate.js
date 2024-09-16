@@ -26,6 +26,7 @@ export default async function handler(req, res) {
       let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'startDate' };
 
       if (buttonIndex === 2) {
+        // Validate start date and proceed
         if (isValidDateFormat(inputText)) {
           sessionData.startDate = inputText;
           sessionData.currentStep = 'endDate';
@@ -40,7 +41,7 @@ export default async function handler(req, res) {
             <head>
               <meta property="fc:frame" content="vNext" />
               <meta property="fc:frame:image" content="${baseUrl}/api/og?step=endDate" />
-              <meta property="fc:frame:input:text" content="Enter the end date (dd/mm/yyyy)" />
+              <meta property="fc:frame:input:text" content="Enter End Date dd/mm/yyyy" />
               <meta property="fc:frame:button:1" content="Back" />
               <meta property="fc:frame:button:2" content="Next" />
               <meta property="fc:frame:post_url" content="${baseUrl}/api/endDate" />
@@ -62,6 +63,7 @@ export default async function handler(req, res) {
         return res.redirect(307, `${baseUrl}/api/start`);
       }
 
+      // Show empty input for start date if it's not set
       await sessionRef.set(sessionData);
       const html = `
         <!DOCTYPE html>
@@ -69,7 +71,7 @@ export default async function handler(req, res) {
         <head>
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/og?step=startDate" />
-          <meta property="fc:frame:input:text" content="${sessionData.startDate || 'Enter the start date (dd/mm/yyyy)'}" />
+          <meta property="fc:frame:input:text" content="${sessionData.startDate || 'Enter Start Date dd/mm/yyyy'}" />
           <meta property="fc:frame:button:1" content="Back" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:post_url" content="${baseUrl}/api/startDate" />

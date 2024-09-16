@@ -41,7 +41,7 @@ export default async function handler(req, res) {
             <head>
               <meta property="fc:frame" content="vNext" />
               <meta property="fc:frame:image" content="${baseUrl}/api/og?step=startDate" />
-              <meta property="fc:frame:input:text" content="Enter the start date (dd/mm/yyyy)" />
+              <meta property="fc:frame:input:text" content="Enter Start Date dd/mm/yyyy" />
               <meta property="fc:frame:button:1" content="Back" />
               <meta property="fc:frame:button:2" content="Next" />
               <meta property="fc:frame:post_url" content="${baseUrl}/api/startDate" />

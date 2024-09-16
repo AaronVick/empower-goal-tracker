@@ -29,13 +29,14 @@ export default async function handler(req, res) {
         // Validate end date and proceed
         if (isValidDateFormat(inputText)) {
           sessionData.endDate = inputText;
-          sessionData.currentStep = 'review'; // Move to the review step
+          sessionData.currentStep = 'review';
           sessionData.error = null;
           await sessionRef.set(sessionData);
 
           // Redirect to review step
           return res.redirect(307, `${baseUrl}/api/review`);
         } else {
+          console.log('Error: Invalid end date format');
           sessionData.error = 'invalid_end_date';
         }
       } else if (buttonIndex === 1) {
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
         return res.redirect(307, `${baseUrl}/api/startDate`);
       }
 
-      // If there was an error or an initial load
+      // Show empty input for end date if it's not set
       await sessionRef.set(sessionData);
       const html = `
         <!DOCTYPE html>
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
         <head>
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/og?step=endDate" />
-          <meta property="fc:frame:input:text" content="${sessionData.endDate || 'Enter the end date (dd/mm/yyyy)'}" />
+          <meta property="fc:frame:input:text" content="${sessionData.endDate || 'Enter End Date dd/mm/yyyy'}" />
           <meta property="fc:frame:button:1" content="Back" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:post_url" content="${baseUrl}/api/endDate" />
@@ -69,6 +70,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 }
