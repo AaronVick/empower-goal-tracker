@@ -92,7 +92,7 @@ export default async function handler(req, res) {
 function generateHtml(sessionData, baseUrl, error) {
   let imageUrl, inputTextContent, button1Content, button2Content;
 
-  // Error case handling
+  // Handle errors and steps
   if (error) {
     imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.currentStep}`;
     inputTextContent = "Error occurred, please try again.";
@@ -128,7 +128,7 @@ function generateHtml(sessionData, baseUrl, error) {
     inputTextContent = null; // No input needed for success step
   }
 
-  // Ensure meta tags are properly formatted and enclosed
+  // Ensure proper meta tag formatting and closure
   return `
 <!DOCTYPE html>
 <html>
