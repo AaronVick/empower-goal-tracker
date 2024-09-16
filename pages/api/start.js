@@ -88,73 +88,56 @@ export default async function handler(req, res) {
 }
 
 function generateHtml(sessionData, baseUrl, error) {
-  let imageUrl, inputTextContent, button1Content, button2Content, button1Action, button2Action;
+  let imageUrl, inputTextContent, button1Content, button2Content;
 
-  // Handle transitions and errors
   if (error) {
     imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.currentStep}`;
     inputTextContent = "Error occurred, please try again.";
     button1Content = "Home";
     button2Content = "Retry";
-    button1Action = `${baseUrl}`; // Home (index)
-    button2Action = `${baseUrl}/api/start`; // Retry (start from goal)
   } else {
     switch (sessionData.currentStep) {
       case 'start':
         imageUrl = `${baseUrl}/api/og?step=start`;
-        inputTextContent = "Enter your goal";
+        inputTextContent = sessionData.goal || "Enter your goal";
         button1Content = "Cancel";
         button2Content = "Next";
-        button1Action = "submit"; // Submit to trigger cancel
-        button2Action = "submit"; // Submit to go to the next step
         break;
       case 'startDate':
         imageUrl = `${baseUrl}/api/og?step=startDate`;
-        inputTextContent = "Enter the start date (dd/mm/yyyy)";
+        inputTextContent = sessionData.startDate || "Enter the start date (dd/mm/yyyy)";
         button1Content = "Back";
         button2Content = "Next";
-        button1Action = "submit"; // Submit to go back to the previous step
-        button2Action = "submit"; // Submit to go to the next step
         break;
       case 'endDate':
         imageUrl = `${baseUrl}/api/og?step=endDate`;
-        inputTextContent = "Enter the end date (dd/mm/yyyy)";
+        inputTextContent = sessionData.endDate || "Enter the end date (dd/mm/yyyy)";
         button1Content = "Back";
         button2Content = "Next";
-        button1Action = "submit"; // Submit to go back to start date entry
-        button2Action = "submit"; // Submit to go to the review step
         break;
       case 'review':
         const goal = encodeURIComponent(sessionData.goal);
         const startDate = encodeURIComponent(sessionData.startDate);
         const endDate = encodeURIComponent(sessionData.endDate);
         imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
+        inputTextContent = null; // No input needed for review step
         button1Content = "Back";
         button2Content = "Set Goal";
-        button1Action = "submit"; // Submit to go back to the previous step
-        button2Action = "submit"; // Submit to finalize the goal
-        inputTextContent = null; // No input needed for review step
         break;
       case 'success':
         imageUrl = `${baseUrl}/api/successImage`;
+        inputTextContent = null; // No input needed for success step
         button1Content = "Home";
         button2Content = "Share";
-        button1Action = "submit"; // Submit to go back to home
-        button2Action = "submit"; // Submit to share the goal
-        inputTextContent = null; // No input needed for success step
         break;
       default:
-        // Handle unknown step with specific actions for "Cancel" and "Retry"
         imageUrl = `${baseUrl}/api/og?step=unknown`;
         inputTextContent = "Unknown step.";
         button1Content = "Cancel";
         button2Content = "Retry";
-        button1Action = "submit"; // Submit to go back to home (index)
-        button2Action = "submit"; // Submit to restart from goal entry
     }
   }
 
-  // Generate the HTML response with buttons properly configured as "submit"
   return `
 <!DOCTYPE html>
 <html>
@@ -162,11 +145,9 @@ function generateHtml(sessionData, baseUrl, error) {
     <title>Goal Tracker</title>
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="${imageUrl}" />
-    ${inputTextContent ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
+    ${inputTextContent !== null ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
     <meta property="fc:frame:button:1" content="${button1Content}" />
-    <meta property="fc:frame:button:1:action" content="${button1Action}" />
     <meta property="fc:frame:button:2" content="${button2Content}" />
-    <meta property="fc:frame:button:2:action" content="${button2Action}" />
     <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
   </head>
   <body>
