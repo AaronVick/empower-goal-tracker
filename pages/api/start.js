@@ -3,16 +3,17 @@ import { db } from '../../lib/firebase';
 export default async function handler(req, res) {
   console.log('Goal Tracker API accessed');
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
-  let currentStep = 'start';
   let error = null;
 
   if (req.method === 'POST') {
     const { untrustedData } = req.body;
     const buttonIndex = parseInt(untrustedData.buttonIndex);
     const inputText = untrustedData.inputText || '';
-    const fid = untrustedData.fid || req.query.fid;
+    const fid = untrustedData.fid;
 
     console.log('Received FID:', fid);
+    console.log('Received button index:', buttonIndex);
+    console.log('Received input text:', inputText);
 
     if (!fid) {
       console.error('FID not provided');
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
       console.log('Attempting to fetch/initialize session for FID:', fid);
       const sessionRef = db.collection('sessions').doc(fid.toString());
       const sessionSnapshot = await sessionRef.get();
-      let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep, stepGoal: 'start' };
+      let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, stepGoal: 'start' };
 
       console.log('Current session data:', sessionData);
 
@@ -89,9 +90,7 @@ export default async function handler(req, res) {
 }
 
 function generateHtml(sessionData, baseUrl, error) {
-  let imageUrl, inputTextContent, button1Content, button2Content, postUrl;
-
-  postUrl = `${baseUrl}/api/start`;
+  let imageUrl, inputTextContent, button1Content, button2Content;
 
   if (error) {
     imageUrl = `${baseUrl}/api/og?error=${error}&step=${sessionData.stepGoal}`;
@@ -120,29 +119,29 @@ function generateHtml(sessionData, baseUrl, error) {
     imageUrl = `${baseUrl}/api/ogReview?goal=${goal}&startDate=${startDate}&endDate=${endDate}`;
     button1Content = "Back";
     button2Content = "Set Goal";
+    inputTextContent = null; // No input needed for review step
   } else if (sessionData.stepGoal === 'success') {
     imageUrl = `${baseUrl}/api/successImage`;
     button1Content = "Home";
     button2Content = "Share";
-    postUrl = `${baseUrl}/api/share`;
+    inputTextContent = null; // No input needed for success step
   }
 
   return `
-  <!DOCTYPE html>
-  <html>
-    <head>
-      <meta property="fc:frame" content="vNext" />
-      <meta property="fc:frame:image" content="${imageUrl}" />
-      ${inputTextContent ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
-      <meta property="fc:frame:button:1" content="${button1Content}" />
-      <meta property="fc:frame:button:2" content="${button2Content}" />
-      <meta property="fc:frame:post_url" content="${postUrl}" />
-    </head>
-    <body>
-      <p>This is a Farcaster Frame for the Goal Tracker app.</p>
-    </body>
-  </html>
-`;
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta property="fc:frame" content="vNext" />
+    <meta property="fc:frame:image" content="${imageUrl}" />
+    ${inputTextContent !== null ? `<meta property="fc:frame:input:text" content="${inputTextContent}" />` : ''}
+    <meta property="fc:frame:button:1" content="${button1Content}" />
+    <meta property="fc:frame:button:2" content="${button2Content}" />
+    <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
+  </head>
+  <body>
+    <p>This is a Farcaster Frame for the Goal Tracker app.</p>
+  </body>
+</html>`;
 }
 
 function isValidDateFormat(dateString) {
