@@ -1,5 +1,4 @@
 import { db } from '../../lib/firebase';
-import { createReviewOGImage } from '../../lib/utils';
 
 export default async function handler(req, res) {
   console.log('Review Goals accessed');
@@ -27,41 +26,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (buttonIndex === 3) {
-      // Home button
-      return res.status(200).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
-          <meta property="fc:frame:button:1" content="Start a Goal" />
-          <meta property="fc:frame:button:2" content="Review Goals" />
-          <meta property="fc:frame:post_url" content="${baseUrl}/api" />
-        </head>
-        </html>
-      `);
-    }
-
     console.log('Attempting to fetch goals for FID:', fid);
 
-    const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
-    const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
-
-    let goalsSnapshot = goalsSnapshotNum.empty ? goalsSnapshotStr : goalsSnapshotNum;
+    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
 
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
-      const noGoalImageUrl = createReviewOGImage("No goals set yet", "", "");
-
       const html = `
         <!DOCTYPE html>
         <html>
           <head>
             <meta property="fc:frame" content="vNext" />
-            <meta property="fc:frame:image" content="${noGoalImageUrl}" />
+            <meta property="fc:frame:image" content="${baseUrl}/api/og?message=No goals found" />
             <meta property="fc:frame:button:1" content="Home" />
-            <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
+            <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
           </head>
         </html>
       `;
@@ -79,11 +57,12 @@ export default async function handler(req, res) {
     } else if (buttonIndex === 4) {
       // Complete Goal button
       const goalToComplete = goals[currentIndex];
-      return res.redirect(302, `${baseUrl}/api/completeGoal?id=${goalToComplete.id}&fid=${fid}`);
+      await db.collection("goals").doc(goalToComplete.id).update({ completed: true });
+      console.log(`Goal ${goalToComplete.id} marked as completed`);
     }
 
     const goalData = goals[currentIndex];
-    const imageUrl = createReviewOGImage(goalData.goal, goalData.startDate.toDate(), goalData.endDate.toDate(), currentIndex + 1, totalGoals);
+    const imageUrl = `${baseUrl}/api/og?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&index=${currentIndex + 1}&total=${totalGoals}`;
 
     const html = `
       <!DOCTYPE html>
@@ -95,7 +74,7 @@ export default async function handler(req, res) {
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:button:3" content="Home" />
           <meta property="fc:frame:button:4" content="${goalData.completed ? 'Completed' : 'Complete'}" />
-          <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewing" />
           <meta property="fc:frame:state" content="${currentIndex}" />
         </head>
       </html>

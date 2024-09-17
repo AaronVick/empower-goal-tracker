@@ -21,11 +21,9 @@ export default async function handler(req, res) {
 
     try {
       const sessionRef = db.collection('sessions').doc(fid.toString());
-      const sessionSnapshot = await sessionRef.get();
-      let sessionData = sessionSnapshot.exists ? sessionSnapshot.data() : { fid, currentStep: 'start' };
-
-      // Reset error state
-      sessionData.error = null;
+      
+      // Always start with a fresh session
+      let sessionData = { fid, currentStep: 'start', goal: '' };
 
       if (buttonIndex === 2) {
         if (inputText.trim()) {
@@ -34,7 +32,6 @@ export default async function handler(req, res) {
           await sessionRef.set(sessionData);
           console.log('Moving to startDate step');
 
-          // Return metatags for the startDate frame
           const html = `
             <!DOCTYPE html>
             <html>
@@ -66,7 +63,7 @@ export default async function handler(req, res) {
         <head>
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/og?step=start" />
-          <meta property="fc:frame:input:text" content="${sessionData.goal || 'Enter your goal'}" />
+          <meta property="fc:frame:input:text" content="Enter your goal" />
           <meta property="fc:frame:button:1" content="Cancel" />
           <meta property="fc:frame:button:2" content="Next" />
           <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />

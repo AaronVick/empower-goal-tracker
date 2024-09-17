@@ -1,72 +1,35 @@
-import { db } from '../lib/firebase';
+import Head from 'next/head';
 
 export default function Home() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
 
   return (
-    <html>
-      <head>
+    <>
+      <Head>
+        <title>Empower Goal Tracker</title>
+        <meta name="description" content="Track and achieve your goals with Empower" />
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content={`${baseUrl}/api/image`} />
         <meta property="fc:frame:button:1" content="Start a Goal" />
+        <meta property="fc:frame:button:1:action" content="post" />
+        <meta property="fc:frame:button:1:target" content={`${baseUrl}/api/start`} />
         <meta property="fc:frame:button:2" content="Review Goals" />
-        <meta property="fc:frame:post_url" content={`${baseUrl}/api/start`} />
-      </head>
-      <body>
+        <meta property="fc:frame:button:2:action" content="post" />
+        <meta property="fc:frame:button:2:target" content={`${baseUrl}/api/reviewing`} />
+      </Head>
+      <main>
         <h1>Welcome to Empower Goal Tracker</h1>
-      </body>
-    </html>
+        <p>Set and track your goals with ease!</p>
+      </main>
+    </>
   );
 }
 
+// If you need any server-side logic, you can use getServerSideProps
 export async function getServerSideProps(context) {
-  if (context.req.method === 'POST') {
-    const body = await readBody(context.req);
-    const { untrustedData } = JSON.parse(body);
-    const buttonIndex = parseInt(untrustedData.buttonIndex);
-    const fid = untrustedData.fid;
-
-    if (buttonIndex === 1) {
-      // "Start a Goal" button was clicked
-      console.log('Start a Goal button clicked');
-
-      // Initialize a session for the user
-      await db.collection('sessions').doc(fid.toString()).set({
-        currentStep: 'start',
-        fid: fid
-      });
-
-      return {
-        redirect: {
-          destination: `/api/start?fid=${fid}`,
-          permanent: false,
-        },
-      };
-    } else if (buttonIndex === 2) {
-      // "Review Goals" button was clicked
-      console.log('Review Goals button clicked');
-      return {
-        redirect: {
-          destination: `/api/reviewing?fid=${fid}`,
-          permanent: false,
-        },
-      };
-    }
-  }
-
-  return { props: {} };
-}
-
-// Helper function to read the request body
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      resolve(body);
-    });
-    req.on('error', reject);
-  });
+  // You can perform any server-side operations here if needed
+  // For now, we're just returning an empty props object
+  return {
+    props: {}, // will be passed to the page component as props
+  };
 }
