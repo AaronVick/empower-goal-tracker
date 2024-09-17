@@ -28,7 +28,6 @@ export default async function handler(req, res) {
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
-    // Query goals where user_id is either a string or a number matching fid
     const goalsSnapshot = await db.collection("goals")
       .where("user_id", "in", [fid.toString(), parseInt(fid)])
       .get();
