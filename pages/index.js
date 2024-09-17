@@ -27,7 +27,7 @@ export async function getServerSideProps(context) {
     const fid = untrustedData.fid;
 
     if (buttonIndex === 1) {
-      // "Start a Goal" was clicked
+      // "Start a Goal" button was clicked
       console.log('Start a Goal button clicked');
 
       // Initialize a session for the user
@@ -43,7 +43,7 @@ export async function getServerSideProps(context) {
         },
       };
     } else if (buttonIndex === 2) {
-      // "Review Goals" was clicked
+      // "Review Goals" button was clicked
       console.log('Review Goals button clicked');
       return {
         redirect: {
