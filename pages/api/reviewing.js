@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     console.log('POST request received. FID:', fid, 'Current Index:', currentIndex, 'Button Index:', buttonIndex);
   } else if (req.method === 'GET') {
     fid = req.query.fid;
-    currentIndex = 0;  // Always start with the first goal
+    currentIndex = 0;
     console.log('GET request received. FID:', fid);
   } else {
     console.log('Invalid request method:', req.method);
@@ -28,16 +28,22 @@ export default async function handler(req, res) {
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
-    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid.toString()).get();
+    // Query goals where user_id is either a string or a number matching fid
+    const goalsSnapshot = await db.collection("goals")
+      .where("user_id", "in", [fid.toString(), parseInt(fid)])
+      .get();
+
+    console.log('Goals snapshot empty:', goalsSnapshot.empty);
 
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
+      const imageUrl = `${baseUrl}/api/ogReviewImage?message=${encodeURIComponent("No goals found")}`;
       const html = `
         <!DOCTYPE html>
         <html>
           <head>
             <meta property="fc:frame" content="vNext" />
-            <meta property="fc:frame:image" content="${baseUrl}/api/og?message=No goals found" />
+            <meta property="fc:frame:image" content="${imageUrl}" />
             <meta property="fc:frame:button:1" content="Home" />
             <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
           </head>
@@ -47,6 +53,9 @@ export default async function handler(req, res) {
     }
 
     const goals = goalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log('Goals found:', goals.length);
+    console.log('Goals data:', JSON.stringify(goals));
+
     const totalGoals = goals.length;
 
     // Handle navigation buttons (back and next)
