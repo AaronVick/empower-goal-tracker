@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     console.log('POST request received. FID:', fid, 'Current Index:', currentIndex, 'Button Index:', buttonIndex);
   } else if (req.method === 'GET') {
     fid = req.query.fid;
-    currentIndex = 0;
+    currentIndex = 0;  // Always start with the first goal
     console.log('GET request received. FID:', fid);
   } else {
     console.log('Invalid request method:', req.method);
@@ -54,11 +54,17 @@ export default async function handler(req, res) {
       currentIndex = (currentIndex - 1 + totalGoals) % totalGoals;
     } else if (buttonIndex === 2) {
       currentIndex = (currentIndex + 1) % totalGoals;
+    } else if (buttonIndex === 3) {
+      // Home button
+      return res.redirect(307, `${baseUrl}/api/start`);
     } else if (buttonIndex === 4) {
       // Complete Goal button
       const goalToComplete = goals[currentIndex];
       await db.collection("goals").doc(goalToComplete.id).update({ completed: true });
       console.log(`Goal ${goalToComplete.id} marked as completed`);
+      
+      // Redirect to the completion page
+      return res.redirect(307, `${baseUrl}/api/completeGoal?id=${goalToComplete.id}&fid=${fid}`);
     }
 
     const goalData = goals[currentIndex];
