@@ -13,12 +13,9 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     ({ id: goalId, fid } = req.query);
   } else if (req.method === 'POST') {
-    if (req.query.id && req.query.fid) {
-      ({ id: goalId, fid } = req.query);
-    } else {
-      const { untrustedData } = req.body;
-      [goalId, fid] = (untrustedData.state || '').split(',');
-    }
+    const { untrustedData } = req.body;
+    goalId = untrustedData.state;
+    fid = untrustedData.fid;
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -31,14 +28,7 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching goal data for ID:', goalId);
 
-    // Fetch goal data from the sessions collection if available
-    let goalDoc = await db.collection('sessions').doc(fid).get();
-
-    // If no session is found, check in the goals collection
-    if (!goalDoc.exists) {
-      console.log('No session found, fetching goal from goals collection');
-      goalDoc = await db.collection('goals').doc(goalId).get();
-    }
+    const goalDoc = await db.collection('goals').doc(goalId).get();
 
     if (!goalDoc.exists) {
       console.error(`Goal ID ${goalId} not found.`);
@@ -49,13 +39,13 @@ export default async function handler(req, res) {
     console.log('Goal data fetched:', goalData);
 
     // Check FID authorization
-    if (fid && goalData.user_id != fid) {
+    if (fid && goalData.user_id !== fid.toString()) {
       console.log('Unauthorized access attempt');
       return res.status(403).json({ error: "Unauthorized" });
     }
 
     // Mark goal as completed if it's not already marked
-    if (fid && !goalData.completed) {
+    if (!goalData.completed) {
       await db.collection('goals').doc(goalId).update({ completed: true });
       console.log('Goal marked as completed');
     }
@@ -77,7 +67,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
             <meta property="fc:frame:button:1" content="Start a Goal" />
             <meta property="fc:frame:button:2" content="Review Goals" />
-            <meta property="fc:frame:post_url" content="${baseUrl}/api" />
+            <meta property="fc:frame:post_url" content="${baseUrl}/api/start" />
           </head>
           </html>
         `);
@@ -109,10 +99,10 @@ export default async function handler(req, res) {
       <head>
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="${imageUrl}" />
-        <meta property="fc:frame:button:1" content="${fid ? 'Back to Home' : 'Set Your Own Goal'}" />
-        <meta property="fc:frame:button:2" content="${fid ? 'Share Achievement' : ''}" />
+        <meta property="fc:frame:button:1" content="Back to Home" />
+        <meta property="fc:frame:button:2" content="Share Achievement" />
         <meta property="fc:frame:post_url" content="${baseUrl}/api/completeGoal" />
-        <meta property="fc:frame:state" content="${goalId},${fid}" />
+        <meta property="fc:frame:state" content="${goalId}" />
       </head>
       </html>
     `);

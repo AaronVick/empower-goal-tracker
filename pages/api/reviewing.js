@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   try {
     console.log('Attempting to fetch goals for FID:', fid);
 
-    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid).get();
+    const goalsSnapshot = await db.collection("goals").where("user_id", "==", fid.toString()).get();
 
     if (goalsSnapshot.empty) {
       console.log('No goals found for FID:', fid);
@@ -60,10 +60,6 @@ export default async function handler(req, res) {
     } else if (buttonIndex === 4) {
       // Complete Goal button
       const goalToComplete = goals[currentIndex];
-      await db.collection("goals").doc(goalToComplete.id).update({ completed: true });
-      console.log(`Goal ${goalToComplete.id} marked as completed`);
-      
-      // Redirect to the completion page
       return res.redirect(307, `${baseUrl}/api/completeGoal?id=${goalToComplete.id}&fid=${fid}`);
     }
 
