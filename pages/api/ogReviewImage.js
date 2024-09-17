@@ -14,8 +14,9 @@ export default async function handler(req) {
     const endDate = searchParams.get('endDate');
     const index = searchParams.get('index');
     const total = searchParams.get('total');
+    const completed = searchParams.get('completed') === 'true';
 
-    console.log('Received parameters:', { goal, startDate, endDate, index, total });
+    console.log('Received parameters:', { goal, startDate, endDate, index, total, completed });
 
     if (!goal || !startDate || !endDate || !index || !total) {
       console.error('Missing required parameters');
@@ -46,6 +47,16 @@ export default async function handler(req) {
           </p>
           <p style={{ fontSize: '24px', marginBottom: '10px' }}>Start Date: {decodeURIComponent(startDate)}</p>
           <p style={{ fontSize: '24px', marginBottom: '20px' }}>End Date: {decodeURIComponent(endDate)}</p>
+          <p style={{ 
+            fontSize: '28px', 
+            fontWeight: 'bold',
+            color: completed ? '#4CAF50' : '#FFA500',
+            padding: '10px 20px',
+            borderRadius: '20px',
+            background: 'rgba(255, 255, 255, 0.1)'
+          }}>
+            {completed ? 'Completed' : 'In Progress'}
+          </p>
         </div>
       ),
       {

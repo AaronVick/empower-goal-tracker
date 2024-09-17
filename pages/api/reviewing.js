@@ -69,7 +69,8 @@ export default async function handler(req, res) {
       startDate: goalData.startDate.toDate().toLocaleDateString(),
       endDate: goalData.endDate.toDate().toLocaleDateString(),
       index: currentIndex + 1,
-      total: totalGoals
+      total: totalGoals,
+      completed: goalData.completed ? 'true' : 'false'
     }).toString();
 
     console.log('Generated image URL:', imageUrl);
