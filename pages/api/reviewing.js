@@ -62,7 +62,15 @@ export default async function handler(req, res) {
     }
 
     const goalData = goals[currentIndex];
-    const imageUrl = `${baseUrl}/api/og?goal=${encodeURIComponent(goalData.goal)}&startDate=${encodeURIComponent(goalData.startDate.toDate().toLocaleDateString())}&endDate=${encodeURIComponent(goalData.endDate.toDate().toLocaleDateString())}&index=${currentIndex + 1}&total=${totalGoals}`;
+    const imageUrl = `${baseUrl}/api/ogReviewImage?` + new URLSearchParams({
+      goal: goalData.goal,
+      startDate: goalData.startDate.toDate().toLocaleDateString(),
+      endDate: goalData.endDate.toDate().toLocaleDateString(),
+      index: currentIndex + 1,
+      total: totalGoals
+    }).toString();
+
+    console.log('Generated image URL:', imageUrl);
 
     const html = `
       <!DOCTYPE html>
