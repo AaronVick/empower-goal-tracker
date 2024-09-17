@@ -47,7 +47,7 @@ export async function getServerSideProps(context) {
       console.log('Review Goals button clicked');
       return {
         redirect: {
-          destination: `/api/reviewGoals?fid=${fid}`,
+          destination: `/api/reviewing?fid=${fid}`,
           permanent: false,
         },
       };

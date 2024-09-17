@@ -35,3 +35,12 @@ export function convertToTimestamp(dateString, isStart) {
 
   return Timestamp.fromDate(date);
 }
+
+// Function to create the Review OG Image
+export function createReviewOGImage(goal, startDate, endDate, index, totalGoals) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
+  const formattedStartDate = new Date(startDate).toLocaleDateString();
+  const formattedEndDate = new Date(endDate).toLocaleDateString();
+
+  return `${baseUrl}/api/ogReview?goal=${encodeURIComponent(goal)}&startDate=${encodeURIComponent(formattedStartDate)}&endDate=${encodeURIComponent(formattedEndDate)}&index=${index}&total=${totalGoals}`;
+}

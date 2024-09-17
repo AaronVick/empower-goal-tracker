@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     } else if (buttonIndex === 2) {
       // "Review Goals" was clicked
       console.log('Review Goals button clicked');
-      return res.redirect(302, `${baseUrl}/api/reviewGoals?fid=${fid}`);
+      return res.redirect(302, `${baseUrl}/api/reviewing?fid=${fid}`);
     }
   }
 
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
       <meta property="fc:frame:button:1" content="Start a Goal" />
       <meta property="fc:frame:button:2" content="Review Goals" />
-      <meta property="fc:frame:post_url" content="${baseUrl}/api" />
+      <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewing" />
     </head>
     </html>
   `);

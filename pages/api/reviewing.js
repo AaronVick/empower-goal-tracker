@@ -1,0 +1,109 @@
+import { db } from '../../lib/firebase';
+import { createReviewOGImage } from '../../lib/utils';
+
+export default async function handler(req, res) {
+  console.log('Review Goals accessed');
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_PATH || 'https://empower-goal-tracker.vercel.app';
+
+  let fid, currentIndex, buttonIndex;
+  if (req.method === 'POST') {
+    const { untrustedData } = req.body;
+    fid = untrustedData.fid;
+    currentIndex = parseInt(untrustedData.state || '0');
+    buttonIndex = parseInt(untrustedData.buttonIndex || '0');
+    console.log('POST request received. FID:', fid, 'Current Index:', currentIndex, 'Button Index:', buttonIndex);
+  } else if (req.method === 'GET') {
+    fid = req.query.fid;
+    currentIndex = 0;
+    console.log('GET request received. FID:', fid);
+  } else {
+    console.log('Invalid request method:', req.method);
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!fid) {
+    console.log('No FID provided');
+    return res.status(400).json({ error: "FID is required" });
+  }
+
+  try {
+    if (buttonIndex === 3) {
+      // Home button
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${baseUrl}/empower.png" />
+          <meta property="fc:frame:button:1" content="Start a Goal" />
+          <meta property="fc:frame:button:2" content="Review Goals" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api" />
+        </head>
+        </html>
+      `);
+    }
+
+    console.log('Attempting to fetch goals for FID:', fid);
+
+    const goalsSnapshotNum = await db.collection("goals").where("user_id", "==", Number(fid)).get();
+    const goalsSnapshotStr = await db.collection("goals").where("user_id", "==", fid.toString()).get();
+
+    let goalsSnapshot = goalsSnapshotNum.empty ? goalsSnapshotStr : goalsSnapshotNum;
+
+    if (goalsSnapshot.empty) {
+      console.log('No goals found for FID:', fid);
+      const noGoalImageUrl = createReviewOGImage("No goals set yet", "", "");
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta property="fc:frame" content="vNext" />
+            <meta property="fc:frame:image" content="${noGoalImageUrl}" />
+            <meta property="fc:frame:button:1" content="Home" />
+            <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
+          </head>
+        </html>
+      `;
+      return res.setHeader('Content-Type', 'text/html').status(200).send(html);
+    }
+
+    const goals = goalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const totalGoals = goals.length;
+
+    // Handle navigation buttons (back and next)
+    if (buttonIndex === 1) {
+      currentIndex = (currentIndex - 1 + totalGoals) % totalGoals;
+    } else if (buttonIndex === 2) {
+      currentIndex = (currentIndex + 1) % totalGoals;
+    } else if (buttonIndex === 4) {
+      // Complete Goal button
+      const goalToComplete = goals[currentIndex];
+      return res.redirect(302, `${baseUrl}/api/completeGoal?id=${goalToComplete.id}&fid=${fid}`);
+    }
+
+    const goalData = goals[currentIndex];
+    const imageUrl = createReviewOGImage(goalData.goal, goalData.startDate.toDate(), goalData.endDate.toDate(), currentIndex + 1, totalGoals);
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${imageUrl}" />
+          <meta property="fc:frame:button:1" content="Previous" />
+          <meta property="fc:frame:button:2" content="Next" />
+          <meta property="fc:frame:button:3" content="Home" />
+          <meta property="fc:frame:button:4" content="${goalData.completed ? 'Completed' : 'Complete'}" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api/reviewGoals" />
+          <meta property="fc:frame:state" content="${currentIndex}" />
+        </head>
+      </html>
+    `;
+    return res.setHeader('Content-Type', 'text/html').status(200).send(html);
+
+  } catch (error) {
+    console.error('Error fetching user goals:', error);
+    return res.status(500).json({ error: "Error fetching user goals" });
+  }
+}
